@@ -2,12 +2,14 @@ import discord
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
+VOICEPING_CONFIG_IDENTIFIER = 987654321  # Use a meaningful constant for config identifier
+
 class VoicePing(commands.Cog):
     """Ping a text channel when someone joins a voice channel, with exclusions."""
 
     def __init__(self, bot: Red):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=987654321)
+        self.config = Config.get_conf(self, identifier=VOICEPING_CONFIG_IDENTIFIER)
         default_guild = {
             "text_channel_id": None,
             "excluded_voice_ids": []
