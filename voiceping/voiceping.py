@@ -63,16 +63,23 @@ class VoicePing(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        # Only track joins
+        # Only track joins and leaves
         if member.bot or before.channel == after.channel:
             return
 
         guild = member.guild
         text_channel_id = await self.config.guild(guild).text_channel_id()
         excluded = await self.config.guild(guild).excluded_voice_ids()
+        text_channel = guild.get_channel(text_channel_id)
 
-        # Make sure the join is valid and not excluded
+        # User joined a voice channel
         if after.channel and after.channel.id not in excluded:
-            text_channel = guild.get_channel(text_channel_id)
             if text_channel:
                 await text_channel.send(f"🔔 {member.mention} joined **{after.channel.name}**.")
+
+        # User left a voice channel
+        if before.channel and before.channel.id not in excluded:
+            # Check if the channel is now empty (no non-bot members)
+            if len([m for m in before.channel.members if not m.bot]) == 0:
+                if text_channel:
+                    await text_channel.send(f"🔕 Voice stopped in **{before.channel.name}** (channel is now empty).")
