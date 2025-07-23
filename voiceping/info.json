@@ -1,0 +1,11 @@
+{
+  "author": ["MacStoffel"],
+  "description": "Ping a text channel when users join a voice channel (with exclusions).",
+  "install_msg": "✅ VoicePing cog installed and ready!",
+  "name": "VoicePing",
+  "short": "Voice channel ping with exclusions",
+  "tags": ["voice", "notifications", "ping", "utility"],
+  "requirements": [],
+  "hidden": false,
+  "type": "COG"
+}
