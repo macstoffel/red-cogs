@@ -12,9 +12,9 @@ When the hour and minute match, they have to touch the ground
 
 ## Setup
 
-[p]repo add MacStoffel https://github.com/MacStoffel/red-cogs
-[p]cog install MacStoffel timematchcog
-[p]load timematchcog
+- [p]repo add MacStoffel https://github.com/MacStoffel/red-cogs
+- [p]cog install MacStoffel timematchcog
+- [p]load timematchcog
 
 ## Requirements
 
