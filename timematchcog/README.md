@@ -12,15 +12,9 @@ When the hour and minute match, they have to touch the ground
 
 ## Setup
 
-1. Place the `timematchcog` folder in your Red cogs directory.
-2. Load the cog:
-   ```
-   [p]load timematchcog
-   ```
-3. Set the channel for notifications:
-   ```
-   [p]settimematchchannel #your-channel
-   ```
+[p]repo add MacStoffel https://github.com/MacStoffel/red-cogs
+[p]cog install MacStoffel timematchcog
+[p]load timematchcog
 
 ## Requirements
 
