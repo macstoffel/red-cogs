@@ -1,0 +1,11 @@
+{
+  "author": ["MacStoffel"],
+  "description": "A Red DiscordBot cog that sends a notification in a chosen text channel whenever the hour and minute match (e.g., 13:13, 22:22)",
+  "install_msg": "✅ TimeMatchCog cog installed and ready!",
+  "name": "TimeMatchCog",
+  "short": "TimeMatchCog to show matched times",
+  "tags": ["time", "notifications", "ping", "utility"],
+  "requirements": [],
+  "hidden": false,
+  "type": "COG"
+}
