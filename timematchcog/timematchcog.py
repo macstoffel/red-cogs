@@ -15,8 +15,14 @@ class TimeMatchCog(commands.Cog):
     def cog_unload(self):
         self.time_check_loop.cancel()
 
-    @commands.command()
+    @commands.group()
     @commands.admin()
+    async def timematchcog(self, ctx):
+        """TimeMatchCog configuration commands."""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @timematchcog.command()
     async def settimematchchannel(self, ctx, channel: discord.TextChannel):
         """Set the channel for time match notifications."""
         await self.config.guild(ctx.guild).channel_id.set(channel.id)
