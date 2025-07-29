@@ -15,26 +15,26 @@ class TimeMatchCog(commands.Cog):
     def cog_unload(self):
         self.time_check_loop.cancel()
 
-    @commands.group(name="timematch")
+    @commands.group(name="timematchcog")
     @commands.admin()
-    async def timematch(self, ctx):
+    async def timematchcog(self, ctx):
         """TimeMatchCog configuration commands."""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
-    @timematch.command()
+    @timematchcog.command()
     async def settimematchchannel(self, ctx, channel: discord.TextChannel):
         """Set the channel for time match notifications."""
         await self.config.guild(ctx.guild).channel_id.set(channel.id)
         await ctx.send(f"✅ Time match channel set to {channel.mention}.")
 
-    @timematch.command()
+    @timematchcog.command()
     async def settimematchrole(self, ctx, role: discord.Role):
         """Set the role to ping when hour and minute match."""
         await self.config.guild(ctx.guild).role_id.set(role.id)
         await ctx.send(f"✅ Time match role set to {role.mention}.")
 
-    @timematch.command()
+    @timematchcog.command()
     async def status(self, ctx):
         """Show current TimeMatchCog settings for this server."""
         channel_id = await self.config.guild(ctx.guild).channel_id()
