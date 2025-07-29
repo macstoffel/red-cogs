@@ -28,6 +28,27 @@ class TimeMatchCog(commands.Cog):
         await self.config.guild(ctx.guild).channel_id.set(channel.id)
         await ctx.send(f"✅ Time match channel set to {channel.mention}.")
 
+    @timematchcog.command()
+    async def settimematchrole(self, ctx, role: discord.Role):
+        """Set the role to ping when hour and minute match."""
+        await self.config.guild(ctx.guild).role_id.set(role.id)
+        await ctx.send(f"✅ Time match role set to {role.mention}.")
+
+    @timematchcog.command()
+    async def status(self, ctx):
+        """Show current TimeMatchCog settings for this server."""
+        channel_id = await self.config.guild(ctx.guild).channel_id()
+        role_id = await self.config.guild(ctx.guild).role_id()
+        channel = ctx.guild.get_channel(channel_id) if channel_id else None
+        role = ctx.guild.get_role(role_id) if role_id else None
+
+        msg = (
+            f"**TimeMatchCog Settings:**\n"
+            f"Channel: {channel.mention if channel else 'Not set'}\n"
+            f"Role: {role.mention if role else 'Not set'}"
+        )
+        await ctx.send(msg)
+
     @tasks.loop(minutes=1)
     async def time_check_loop(self):
         now = datetime.now()
@@ -36,14 +57,16 @@ class TimeMatchCog(commands.Cog):
 
         for guild in self.bot.guilds:
             channel_id = await self.config.guild(guild).channel_id()
+            role_id = await self.config.guild(guild).role_id()
             if not channel_id:
                 continue
             channel = guild.get_channel(channel_id)
             if not channel:
                 continue
 
+            role_mention = f"<@&{role_id}>" if role_id else ""
             if hour == minute and self.last_sent_minute != minute:
-                await channel.send(f"```diff\n- **HET IS {hour}:{minute} ... TIK DE GROND!**\n```")
+                await channel.send(f"{role_mention} **HET IS {hour}:{minute} ... TIK DE GROND!**")
                 self.last_sent_minute = minute
             elif hour != minute:
                 self.last_sent_minute = None  # Reset for next match
