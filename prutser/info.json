@@ -1,0 +1,13 @@
+{
+    "author": ["MacStoffel"],
+    "name": "Prutser",
+    "description": "Een cog die tijdelijk de rol 'prutser' toekent aan een gebruiker.",
+    "install_msg": "Prutser-cog succesvol geïnstalleerd!",
+    "short": "Tijdelijke prutser-rol",
+    "requirements": [],
+    "tags": ["rol", "tijdelijk", "moderatie"],
+    "min_bot_version": "3.5.0",
+    "hidden": false,
+    "disabled": false,
+    "type": "COG"
+}
