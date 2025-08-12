@@ -227,7 +227,7 @@ class Prutser(commands.Cog):
                 now = datetime.datetime.utcnow().timestamp()
                 await self.config.member(after).assigned_at.set(now)
                 await self.config.member(after).duration.set(duration)
-                await self.log_action(after.guild, f":warning: {after.display_name} heeft de prutser-rol gekregen. Timer gestart voor {duration} seconden. De volgende gebruiker begint met 1")
+                await self.log_action(after.guild, f":warning: <@{after.display_name}> heeft de prutser-rol gekregen. Timer gestart voor {duration} seconden. De volgende gebruiker begint met 1")
                 asyncio.create_task(self._remove_prutser_later(after, prutser_role, duration))
 
     async def _remove_prutser_later(self, member, prutser_role, duration):
@@ -235,7 +235,7 @@ class Prutser(commands.Cog):
         if prutser_role in member.roles:
             try:
                 await member.remove_roles(prutser_role)
-                await self.log_action(member.guild, f":white_check_mark: {member.display_name} is geen prutser meer (timer verlopen).")
+                await self.log_action(member.guild, f":white_check_mark: <@{member.display_name}> is geen prutser meer (timer verlopen).")
             except discord.Forbidden:
                 await self.log_action(member.guild, f":x: Kon de prutser-rol niet verwijderen van {member.display_name} (geen toestemming, handmatig toegevoegd).")
             await self.config.member(member).clear()
