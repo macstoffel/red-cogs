@@ -7,8 +7,10 @@ When the hour and minute match, they have to touch the ground
 
 ## Features
 
-- Sends a message like `HET IS 13:13 ... TIK DE GROND!` when hour and minute match.
+- Sends a message like `HET IS 13:13 ... Kus de grond!` when hour and minute match.
 - Admins can set the notification channel with a command.
+- Admins can set the role that will get pinged
+
 
 ## Setup
 
