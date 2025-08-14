@@ -13,6 +13,9 @@ class TimeMatchCog(commands.Cog):
         self.config.register_member(**default_member)
         self.last_sent_minute = None
         self.last_reported_minute = None
+        # self.time_check_loop.start()  # <-- VERWIJDER DEZE REGEL!
+
+    def cog_load(self):
         self.time_check_loop.start()
 
     def cog_unload(self):
@@ -146,9 +149,3 @@ class TimeMatchCog(commands.Cog):
                 new_score = max(0, score - 1)
                 await self.config.member(message.author).score.set(new_score)
                 await message.channel.send(f"{message.author.mention} verliest een punt! Totaal: {new_score}")
-
-    def cog_load(self):
-        self.time_check_loop.start()
-
-    def cog_unload(self):
-        self.time_check_loop.cancel()
