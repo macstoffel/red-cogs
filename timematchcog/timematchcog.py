@@ -100,7 +100,7 @@ class TimeMatchCog(commands.Cog):
             if hour == minute and last_double_time != current_time:
                 await self.config.guild(guild).last_double_time.set(current_time)
                 await self.config.guild(guild).last_minute.set(minute)
-                await channel.send(f"{role_mention} **Het is {hour}:{minute} ... Kus de grond?**")
+                await channel.send(f"{role_mention} **Het is {hour}:{minute} ... Kus de grond!**")
             # Na afloop van de minuut, score tonen (eenmalig)
             elif hour != minute and last_double_time is not None:
                 if last_minute is not None and last_minute != minute:
