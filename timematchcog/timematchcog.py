@@ -21,7 +21,7 @@ class TimeMatchCog(commands.Cog):
     def cog_unload(self):
         self.time_check_loop.cancel()
 
-    @commands.group(name="timematchcog")
+    @commands.group(name="timematch")
     @commands.admin()
     async def timematchcog(self, ctx):
         """TimeMatchCog configuratie commando's."""
