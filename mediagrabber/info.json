@@ -1,5 +1,5 @@
 {
-  "name": "MediaGrabber",
+  "name": "mediagrabber",
   "author": ["MacStoffel"],
   "description": "Automatically saves uploaded media from Discord channels to a local folder.",
   "install_msg": "Thanks for installing MediaGrabber! Use [p]mediagrabber to configure.",
