@@ -16,7 +16,7 @@ class ChannelBackup(commands.Cog):
             with open(self.config_file, "r") as f:
                 self.config = json.load(f)
         else:
-            self.config = {"channels": {}, "backup_folder": "backups"}
+            self.config = {"channels": {}, "backup_folder": "/home/krh0812/Bot_shizzle/backups"}
             os.makedirs(self.config["backup_folder"], exist_ok=True)
             self.save_config()
 
