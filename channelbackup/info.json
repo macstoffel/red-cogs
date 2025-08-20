@@ -2,7 +2,7 @@
     "name": "channelbackup",
     "version": "1.0.0",
     "description": "Discord cog to backup text channels to local markdown files, auto-updates on new messages.",
-    "author": "MacStoffel",
+    "author": ["MacStoffel"],
     "dependencies": [
         "discord.py",
         "python >=3.8"
