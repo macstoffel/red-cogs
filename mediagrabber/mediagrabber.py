@@ -2,6 +2,7 @@ import discord
 import aiohttp
 import aiofiles
 import os
+import logging
 from redbot.core import commands, Config
 
 class MediaGrabber(commands.Cog):
@@ -19,6 +20,14 @@ class MediaGrabber(commands.Cog):
         }
         self.config.register_global(**default_global)
         self.session = aiohttp.ClientSession()
+        # Add a logger for file saves
+        self.logger = logging.getLogger("mediagrabber")
+        handler = logging.FileHandler("mediagrabber.log", encoding="utf-8")
+        formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+        handler.setFormatter(formatter)
+        if not self.logger.hasHandlers():
+            self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
 
     async def cog_unload(self):
         await self.session.close()
@@ -31,10 +40,14 @@ class MediaGrabber(commands.Cog):
                     async with aiofiles.open(file_path, "wb") as f:
                         await f.write(await resp.read())
                     print(f"[MediaGrabber] Saved {attachment.filename}")
+                    # Log the file save
+                    self.logger.info(f"Saved file: {attachment.filename} at {file_path}")
                 else:
                     print(f"[MediaGrabber] Failed to download {attachment.filename}: HTTP {resp.status}")
+                    self.logger.warning(f"Failed to download {attachment.filename}: HTTP {resp.status}")
         except Exception as e:
             print(f"[MediaGrabber] Error saving {attachment.filename}: {e}")
+            self.logger.error(f"Error saving {attachment.filename}: {e}")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
