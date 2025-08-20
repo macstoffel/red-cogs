@@ -71,12 +71,12 @@ class MediaGrabber(commands.Cog):
         await self.config.save_path.set(path)
         await ctx.send(f"✅ Media will now be saved to: `{path}`")
 
-    @mediagrabber.command()
-    async def enableall(self, ctx, toggle: bool):
-        """Enable or disable saving from all channels."""
-        await self.config.all_channels.set(toggle)
-        state = "enabled" if toggle else "disabled"
-        await ctx.send(f"✅ Saving from **all channels** {state}.")
+#    @mediagrabber.command()
+#    async def enableall(self, ctx, toggle: bool):
+#        """Enable or disable saving from all channels."""
+#        await self.config.all_channels.set(toggle)
+#        state = "enabled" if toggle else "disabled"
+#        await ctx.send(f"✅ Saving from **all channels** {state}.")
 
     @mediagrabber.command()
     async def addchannel(self, ctx, channel: discord.TextChannel):
