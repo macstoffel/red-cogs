@@ -1,46 +1,26 @@
-# MediaGrabber
+# MediaGrabber Cog
 
-A Red DiscordBot cog that automatically saves uploaded media (attachments) from Discord channels to a local folder.
+A [Red-DiscordBot](https://github.com/Cog-Creators/Red-DiscordBot) cog that automatically saves uploaded media (images, videos, files) to a local folder.
 
 ## Features
-
-- Save all media from all channels, or only selected channels.
-- Customizable save path.
-- Easy setup and management via bot commands.
-
-## Setup
-
-1. Place the `mediagrabber` folder in your Red cogs directory.
-2. Load the cog:
-   ```
-   [p]load mediagrabber
-   ```
-3. Configure the cog:
-   - Set the save folder:
-     ```
-     [p]mediagrabber setpath /your/desired/folder
-     ```
-   - Enable saving from all channels:
-     ```
-     [p]mediagrabber enableall true
-     ```
-   - Or add specific channels:
-     ```
-     [p]mediagrabber addchannel #your-channel
-     ```
+- Save attachments from **all channels** or **specific channels** you choose.
+- Option to **organize files into per-server and per-channel subfolders**.
+- Fully configurable via commands.
+- Automatically creates folders if they don't exist.
 
 ## Commands
+- `[p]mediagrabber setpath <path>` → Set save location.
+- `[p]mediagrabber enableall <true|false>` → Enable/disable all channels.
+- `[p]mediagrabber addchannel #channel` → Add a channel to save list.
+- `[p]mediagrabber removechannel #channel` → Remove a channel from save list.
+- `[p]mediagrabber organize <true|false>` → Enable/disable server/channel subfolders.
+- `[p]mediagrabber status` → Show current settings.
 
-- `[p]mediagrabber setpath <path>` — Set the folder for saving media.
-- `[p]mediagrabber enableall <true|false>` — Enable/disable saving from all channels.
-- `[p]mediagrabber addchannel <channel>` — Add a channel to the save list.
-- `[p]mediagrabber removechannel <channel>` — Remove a channel from the save list.
-- `[p]mediagrabber status` — Show current settings.
+## Installation
+Clone or add this repo to your Red bot, then:
+```
+[p]load mediagrabber
+```
 
 ## Requirements
-
-- Redbot V3
-- discord.py
-- aiohttp
-
-## License MIT
+- No extra requirements (uses aiohttp, already in Red).
