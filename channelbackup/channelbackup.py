@@ -1,15 +1,15 @@
-
 import discord
 from redbot.core import commands
 import os
 import json
 from datetime import datetime
+from redbot.core import data_manager
 
 class ChannelBackup(commands.Cog):
+    """Backup Discord text channels to local markdown files, auto-updates on new messages."""
+
     def __init__(self, bot):
         self.bot = bot
-        # Use Redbot's data folder for config
-        from redbot.core import data_manager
         self.config_file = os.path.join(data_manager.cog_data_path(self), "backup_config.json")
         self.load_config()
 
@@ -18,7 +18,8 @@ class ChannelBackup(commands.Cog):
             with open(self.config_file, "r") as f:
                 self.config = json.load(f)
         else:
-            self.config = {"channels": {}, "backup_folder": "/home/krh0812/Bot_shizzle/backups"}
+            default_folder = os.path.join(data_manager.cog_data_path(self), "backups")
+            self.config = {"channels": {}, "backup_folder": default_folder}
             os.makedirs(self.config["backup_folder"], exist_ok=True)
             self.save_config()
 
@@ -26,37 +27,10 @@ class ChannelBackup(commands.Cog):
         with open(self.config_file, "w") as f:
             json.dump(self.config, f, indent=4)
 
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def add_channel(self, ctx, channel: discord.TextChannel, custom_name: str = None):
-        self.config["channels"][str(channel.id)] = {"custom_name": custom_name}
-        os.makedirs(self.config["backup_folder"], exist_ok=True)
-        self.save_config()
-        await ctx.send(f"{channel.name} added to backup list with custom name: {custom_name}")
-
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def remove_channel(self, ctx, channel: discord.TextChannel):
-        if str(channel.id) in self.config["channels"]:
-            del self.config["channels"][str(channel.id)]
-            self.save_config()
-            await ctx.send(f"{channel.name} removed from backup list.")
-        else:
-            await ctx.send("Channel not found in backup list.")
-
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def set_backup_folder(self, ctx, folder: str):
-        self.config["backup_folder"] = folder
-        os.makedirs(folder, exist_ok=True)
-        self.save_config()
-        await ctx.send(f"Backup folder set to {folder}")
-
     def get_filepath(self, channel_id: int):
         channel_info = self.config["channels"].get(str(channel_id), {})
         custom_name = channel_info.get("custom_name")
         filename_prefix = custom_name or str(channel_id)
-        # ISO week + year for weekly file
         year, week, _ = datetime.utcnow().isocalendar()
         filename = f"{filename_prefix}_week{week}_{year}.md"
         return os.path.join(self.config["backup_folder"], filename)
@@ -69,6 +43,55 @@ class ChannelBackup(commands.Cog):
         line = f"**{message.author}** [{timestamp}]: {message.content}\n\n"
         with open(filepath, "a", encoding="utf-8") as f:
             f.write(line)
+
+    @commands.group()
+    @commands.has_permissions(administrator=True)
+    async def channelbackup(self, ctx):
+        """ChannelBackup configuratie commando's."""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @channelbackup.command()
+    async def add(self, ctx, channel: discord.TextChannel, custom_name: str = None):
+        """Voeg een kanaal toe aan de backup lijst."""
+        self.config["channels"][str(channel.id)] = {"custom_name": custom_name}
+        os.makedirs(self.config["backup_folder"], exist_ok=True)
+        self.save_config()
+        await ctx.send(f"{channel.name} toegevoegd aan backup lijst met naam: {custom_name or channel.name}")
+
+    @channelbackup.command()
+    async def remove(self, ctx, channel: discord.TextChannel):
+        """Verwijder een kanaal uit de backup lijst."""
+        if str(channel.id) in self.config["channels"]:
+            del self.config["channels"][str(channel.id)]
+            self.save_config()
+            await ctx.send(f"{channel.name} verwijderd uit backup lijst.")
+        else:
+            await ctx.send("Kanaal niet gevonden in backup lijst.")
+
+    @channelbackup.command()
+    async def setfolder(self, ctx, folder: str):
+        """Stel de backup folder in."""
+        self.config["backup_folder"] = folder
+        os.makedirs(folder, exist_ok=True)
+        self.save_config()
+        await ctx.send(f"Backup folder ingesteld op: {folder}")
+
+    @channelbackup.command()
+    async def status(self, ctx):
+        """Toon huidige backup instellingen."""
+        folder = self.config["backup_folder"]
+        channels = self.config["channels"]
+        channel_list = []
+        for cid, info in channels.items():
+            chan = self.bot.get_channel(int(cid))
+            name = info.get("custom_name") or (chan.name if chan else cid)
+            channel_list.append(f"{name} (`{cid}`)")
+        msg = (
+            f"**Backup folder:** `{folder}`\n"
+            f"**Kanalen:** {', '.join(channel_list) if channel_list else 'Geen'}"
+        )
+        await ctx.send(msg)
 
     @commands.Cog.listener()
     async def on_message(self, message):
