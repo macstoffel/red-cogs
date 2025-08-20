@@ -8,7 +8,9 @@ from datetime import datetime
 class ChannelBackup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.config_file = "backup_config.json"
+        # Use Redbot's data folder for config
+        from redbot.core import data_manager
+        self.config_file = os.path.join(data_manager.cog_data_path(self), "backup_config.json")
         self.load_config()
 
     def load_config(self):
