@@ -3,7 +3,7 @@ import aiohttp
 import os
 from redbot.core import commands, Config
 
-class MediaGrabber(commands.Cog):
+class mediagrabber(commands.Cog):
     """Automatically save uploaded media to a local folder."""
 
     def __init__(self, bot):
