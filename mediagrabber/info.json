@@ -1,0 +1,9 @@
+{
+  "author": ["krh0812"],
+  "install_msg": "Thanks for installing MediaGrabber!",
+  "name": "mediagrabber",
+  "short": "Automatically saves media uploads.",
+  "description": "A cog that saves attachments from selected channels or all channels to disk.",
+  "tags": ["media", "attachments", "files"],
+  "requirements": []
+}
