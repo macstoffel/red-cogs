@@ -1,4 +1,4 @@
-# MediaGrabber
+# MediaGrabber *** currently not working ***
 
 A Red DiscordBot cog that automatically saves uploaded media (attachments) from Discord channels to a local folder.
 
