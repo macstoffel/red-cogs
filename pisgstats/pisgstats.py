@@ -306,6 +306,13 @@ class PisgStats(commands.Cog):
         conf = await self.config.guild(ctx.guild).all()
         guild = ctx.guild
 
+        # Voeg deze toe:
+        users = conf["users"]
+        channels = conf["channels"]
+        words = conf["words"]
+        emojis = conf["emojis"]
+        hour_hist = conf["hour_hist"]
+
         # Bereken runtime
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         runtime = now - self.start_time
