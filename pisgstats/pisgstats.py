@@ -50,7 +50,7 @@ def svg_bar_chart(title, data_pairs, width=700, height=260, margin=40, rotate_la
         y = margin + i * bar_height
         w = (width - 2 * margin) * (val / max_v)
         svg.append(f'<rect x="{margin + 50}" y="{y+4}" width="{w}" height="{bar_height-8}" />')
-        svg.append(f'<text x="{margin - 8}" y="{y+bar_height/2}" text-anchor="end" dominant-baseline="middle" font-size="12">{html.escape(str(lab))}</text>')
+        svg.append(f'<text x="{margin}" y="{y+bar_height/2}" text-anchor="end" dominant-baseline="middle" font-size="12">{html.escape(str(lab))}</text>')
         svg.append(f'<text x="{margin + 50 + w + 4}" y="{y+bar_height/2}" dominant-baseline="middle" font-size="12">{val}</text>')
     # as-lijn
     svg.append(f'<line x1="{margin}" y1="{height-margin}" x2="{width-margin}" y2="{height-margin}" stroke="black"/>')
