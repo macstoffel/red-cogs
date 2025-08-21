@@ -35,27 +35,29 @@ def tokenize(text: str):
 def extract_emojis(text: str):
     return EMOJI_RE.findall(text) + CUSTOM_EMOJI_RE.findall(text)
 
-def svg_bar_chart(title, data_pairs, width=700, height=260, margin=40, rotate_labels=False):
+def svg_bar_chart(title, data_pairs, width=700, height=260, margin_left=100, margin_right=40):
     """Maak een simpele horizontale bar chart (SVG) uit (label, value)-paren."""
     if not data_pairs:
         return f"<h3>{html.escape(title)}</h3><p>Geen data.</p>"
     labels, values = zip(*data_pairs)
     max_v = max(values) or 1
-    bar_height = (height - 2 * margin) / len(values)
+    bar_height = (height - 2 * margin_left) / len(values)
     svg = [f'<h3>{html.escape(title)}</h3>']
     svg.append(f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">')
-    # titel
     svg.append(f'<text x="{width/2}" y="20" text-anchor="middle" font-size="14">{html.escape(title)}</text>')
     for i, (lab, val) in enumerate(data_pairs):
-        y = margin + i * bar_height
-        w = (width - 2 * margin) * (val / max_v)
-        svg.append(f'<rect x="{margin}" y="{y+4}" width="{w}" height="{bar_height-8}" />')
-        svg.append(f'<text x="{margin - 8}" y="{y+bar_height/2}" text-anchor="end" dominant-baseline="middle" font-size="12">{html.escape(str(lab))}</text>')
-        svg.append(f'<text x="{margin + w + 4}" y="{y+bar_height/2}" dominant-baseline="middle" font-size="12">{val}</text>')
-    # as-lijn
-    svg.append(f'<line x1="{margin}" y1="{height-margin}" x2="{width-margin}" y2="{height-margin}" stroke="black"/>')
+        y = margin_left + i * bar_height
+        w = (width - margin_left - margin_right) * (val / max_v)
+        label_text = str(lab)
+        if len(label_text) > 20:
+            label_text = label_text[:17] + "..."
+        svg.append(f'<rect x="{margin_left}" y="{y+4}" width="{w}" height="{bar_height-8}" fill="steelblue"/>')
+        svg.append(f'<text x="{margin_left - 8}" y="{y+bar_height/2}" text-anchor="end" dominant-baseline="middle" font-size="12">{html.escape(label_text)}</text>')
+        svg.append(f'<text x="{margin_left + w + 4}" y="{y+bar_height/2}" dominant-baseline="middle" font-size="12">{val}</text>')
+    svg.append(f'<line x1="{margin_left}" y1="{height-margin_left}" x2="{width-margin_right}" y2="{height-margin_left}" stroke="black"/>')
     svg.append('</svg>')
     return "".join(svg)
+
 
 def svg_bar_chart_vertical(title, data_pairs, width=700, height=260, margin=40, max_bars=24):
     """Verticale bar chart (SVG) – handig voor uren (0..23)."""
