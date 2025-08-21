@@ -102,7 +102,7 @@ class PisgStats(commands.Cog):
         if "wordcount" in g:
             top=dict(Counter(g["wordcount"]).most_common(10))
             html.append("<h3>Topwoorden</h3>"+svg_bar_chart(top, bar_color="#6c9"))
-        html.append("<h2>Gebruikers</h2><table><tr><th>Naam</th><th>Berichten</th><th>Actiefste uur</th><th>Quote</th></tr>")
+        html.append("<h2>Gebruikers</h2><table><tr><th>Naam</th><th>Berichten</th><th>Actiefste uur</th><th>Aantal woorden</th><th>Aantal karakters</th><th>Emoji's</th><th>Quote</th></tr>")
         for uid,u in users.items():
             besth=u.get("hour_hist",[0]*24)
             active_hour=besth.index(max(besth)) if besth else "?"
