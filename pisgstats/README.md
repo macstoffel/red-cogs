@@ -17,8 +17,8 @@ Pisg-achtige statistieken voor Discord, met HTML-rapportage.
 Je kunt deze cog ook installeren als een GitHub repo, vergelijkbaar met andere cog-distributeurs:
 
 ```bash
-[p]repo add jouwnaam jouwgithuburl
-[p]cog install jouwnaam pisgstats
+[p]repo add MacStoffel [(https://github.com/macstoffel/red-cogs)]
+[p]cog install MacStoffel pisgstats
 [p]load pisgstats
 ```
 
