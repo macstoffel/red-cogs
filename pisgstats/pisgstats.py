@@ -1,4 +1,3 @@
-
 import asyncio
 import re
 import math
@@ -37,7 +36,6 @@ def extract_emojis(text: str):
     return EMOJI_RE.findall(text) + CUSTOM_EMOJI_RE.findall(text)
 
 def svg_bar_chart(title, data_pairs, width=None, height=260, margin=None, rotate_labels=False):
-    """Maak een simpele horizontale bar chart (SVG) uit (label, value)-paren."""
     if not data_pairs:
         return f"<h3>{html.escape(title)}</h3><p>Geen data.</p>"
     max_label_len = max(len(str(lab)) for lab, _ in data_pairs)
@@ -49,7 +47,6 @@ def svg_bar_chart(title, data_pairs, width=None, height=260, margin=None, rotate
     bar_height = (height - 2 * margin) / len(values)
     svg = [f'<h3>{html.escape(title)}</h3>']
     svg.append(f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">')
-    # titel
     svg.append(f'<text x="{width/2}" y="20" text-anchor="middle" font-size="14">{html.escape(title)}</text>')
     for i, (lab, val) in enumerate(data_pairs):
         y = margin + i * bar_height
@@ -57,7 +54,6 @@ def svg_bar_chart(title, data_pairs, width=None, height=260, margin=None, rotate
         svg.append(f'<rect x="{margin}" y="{y+4}" width="{w}" height="{bar_height-8}" />')
         svg.append(f'<text x="{margin - 8}" y="{y+bar_height/2}" text-anchor="end" dominant-baseline="middle" font-size="12">{html.escape(str(lab))}</text>')
         svg.append(f'<text x="{margin + w + 4}" y="{y+bar_height/2}" dominant-baseline="middle" font-size="12">{val}</text>')
-    # as-lijn
     svg.append(f'<line x1="{margin}" y1="{height-margin}" x2="{margin + bar_area}" y2="{height-margin}" stroke="black"/>')
     svg.append('</svg>')
     return "".join(svg)
