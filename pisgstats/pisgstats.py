@@ -36,7 +36,7 @@ def tokenize(text: str):
 def extract_emojis(text: str):
     return EMOJI_RE.findall(text) + CUSTOM_EMOJI_RE.findall(text)
 
-def svg_bar_chart(title, data_pairs, width=700, height=260, margin=200, rotate_labels=False):
+def svg_bar_chart(title, data_pairs, width=1000, height=260, margin=200, rotate_labels=False):
     """Maak een simpele horizontale bar chart (SVG) uit (label, value)-paren."""
     if not data_pairs:
         return f"<h3>{html.escape(title)}</h3><p>Geen data.</p>"
@@ -325,7 +325,7 @@ class PisgStats(commands.Cog):
         for cid, c in top_channels:
             name = f"#{getattr(guild.get_channel(int(cid)), 'name', cid)}"
             ch_pairs.append((name, c.get("messages", 0)))
-        channels_svg = svg_bar_chart("Kanaalactiviteit (berichten)", ch_pairs)
+        channels_svg = svg_bar_chart("Kanaalactiviteit (berichten)", ch_pairs, width=1200, margin=300)
 
         # HTML opbouw
         def user_row(uid, u):
