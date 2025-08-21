@@ -49,8 +49,7 @@ def svg_bar_chart(title, data_pairs, width=700, height=260, margin=40, rotate_la
     svg.append(f'<text x="{width/2}" y="20" text-anchor="middle" font-size="14">{html.escape(title)}</text>')
     for i, (lab, val) in enumerate(data_pairs):
         y = margin + i * bar_height
-        bar_fill = 0.7  # 70% of available width
-        w = (width - 2 * margin) * bar_fill * (val / max_v)
+        w = (width - 2 * margin) * (val / max_v)
         svg.append(f'<rect x="{margin}" y="{y+4}" width="{w}" height="{bar_height-8}" />')
         svg.append(f'<text x="{margin - 8}" y="{y+bar_height/2}" text-anchor="end" dominant-baseline="middle" font-size="12">{html.escape(str(lab))}</text>')
         svg.append(f'<text x="{margin + w + 4}" y="{y+bar_height/2}" dominant-baseline="middle" font-size="12">{val}</text>')
