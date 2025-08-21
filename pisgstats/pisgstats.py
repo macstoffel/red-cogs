@@ -40,7 +40,7 @@ def svg_bar_chart(title, data_pairs, width=None, height=260, margin=None, rotate
         return f"<h3>{html.escape(title)}</h3><p>Geen data.</p>"
     max_label_len = max(len(str(lab)) for lab, _ in data_pairs)
     margin = margin or max(40, max_label_len * 10 + 20)
-    bar_area = 500
+    bar_area = max(500, width - margin - 40)
     width = width or (margin + bar_area + 40)
     labels, values = zip(*data_pairs)
     max_v = max(values) or 1
