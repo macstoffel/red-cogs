@@ -1,0 +1,20 @@
+{
+  "author": [
+    "you"
+  ],
+  "name": "PisgStats",
+  "install_msg": "Pisg-style statistieken voor Discord. Gebruik [p]pstats help voor commands.",
+  "short": "Pisg-achtige statistieken en HTML-rapporten.",
+  "description": "Verzamel en genereer uitgebreide kanaal- en gebruikersstatistieken à la pisg, inclusief HTML-rapporten met grafieken (SVG, zonder extra dependencies).",
+  "min_bot_version": "3.5.0",
+  "tags": [
+    "stats",
+    "analytics",
+    "report",
+    "pisg",
+    "discord",
+    "html"
+  ],
+  "requirements": [],
+  "end_user_data_statement": "Deze cog slaat statistieken op over berichten (aantal, tijdstip, woordfrequenties, emoji, links). Inhoud van berichten wordt niet permanent opgeslagen; alleen geaggregeerde tellingen en beperkte metadata."
+}
