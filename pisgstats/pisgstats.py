@@ -326,6 +326,9 @@ class PisgStats(commands.Cog):
             d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
             last_days.append((d, day_hist.get(d, 0)))
 
+        # Toevoegen: berichten per dag (laatste 31 dagen) als verticale SVG-chart
+        days_svg = svg_bar_chart_vertical("Berichten per dag (laatste 31 dagen)", last_days, width=900, height=300, margin=60, max_bars=31)
+
         # Top lijsten
         top_users = sorted(users.items(), key=lambda kv: kv[1].get("messages", 0), reverse=True)[:20]
         top_channels = sorted(channels.items(), key=lambda kv: kv[1].get("messages", 0), reverse=True)[:20]
@@ -380,12 +383,8 @@ class PisgStats(commands.Cog):
             f"Totaal berichten: <b>{conf['messages']}</b> • Tekens: <b>{conf['characters']}</b> • Links: <b>{conf['links']}</b> • Bijlagen: <b>{conf['attachments']}</b></p>"
         )
 
-        # Toevoegen: berichten per dag (laatste 31 dagen)
-        html_parts.append("<h2>Berichten per dag (laatste 31 dagen)</h2>")
-        html_parts.append("<table><tr><th>Datum</th><th>Berichten</th></tr>")
-        for d, n in last_days:
-            html_parts.append(f"<tr><td>{d}</td><td>{n}</td></tr>")
-        html_parts.append("</table>")
+        # Vervang de tabel door de SVG-chart
+        html_parts.append(days_svg)
 
         # charts
         html_parts.append("<div class='cols'>")
