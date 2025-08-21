@@ -106,7 +106,7 @@ class PisgStats(commands.Cog):
         for uid,u in users.items():
             besth=u.get("hour_hist",[0]*24)
             active_hour=besth.index(max(besth)) if besth else "?"
-            html.append(f"<tr><td>{u.get('name')}</td><td>{u.get('messages',0)}</td><td>{active_hour}</td><td>{u.get('words')}</td><td>{u.get('chars')}</td><td>{u.get('emoji')}:00</td><td>{u.get('quote','')}</td></tr>")
+            html.append(f"<tr><td>{u.get('name')}</td><td>{u.get('messages',0)}</td><td>{active_hour}:00</td><td>{u.get('words')}</td><td>{u.get('chars')}</td><td>{u.get('emoji')}</td><td>{u.get('quote','')}</td></tr>")
         html.append("</table></body></html>")
         fn="/tmp/pstats.html"; open(fn,"w",encoding="utf-8").write(''.join(html))
         await ctx.send(file=discord.File(fn))
