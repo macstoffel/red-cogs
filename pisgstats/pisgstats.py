@@ -36,7 +36,7 @@ def tokenize(text: str):
 def extract_emojis(text: str):
     return EMOJI_RE.findall(text) + CUSTOM_EMOJI_RE.findall(text)
 
-def svg_bar_chart(title, data_pairs, width=1000, height=260, margin=200, rotate_labels=False):
+def svg_bar_chart(title, data_pairs, width=700, height=260, margin=40, rotate_labels=False):
     """Maak een simpele horizontale bar chart (SVG) uit (label, value)-paren."""
     if not data_pairs:
         return f"<h3>{html.escape(title)}</h3><p>Geen data.</p>"
