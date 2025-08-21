@@ -5,12 +5,22 @@ Pisg-achtige statistieken voor Discord, met HTML-rapportage.
 
 ## Installatie
 
+### Via lokale bestanden
 1. Kopieer deze map naar de cogs-folder van je Redbot, of installeer via een path repo.
 2. Herstart/reaad je bot of gebruik `reload`.
 3. Laad de cog:
    ```
    [p]load pisgstats
    ```
+
+### Via GitHub (aan te passen)
+Je kunt deze cog ook installeren als een GitHub repo, vergelijkbaar met andere cog-distributeurs:
+
+```bash
+[p]repo add jouwnaam jouwgithuburl
+[p]cog install jouwnaam pisgstats
+[p]load pisgstats
+```
 
 ## Gebruik (belangrijkste commands)
 
@@ -21,6 +31,13 @@ Pisg-achtige statistieken voor Discord, met HTML-rapportage.
 - `pstats harvest #kanaal 2000` – lees 2000 historische berichten
 - `pstats show` – compacte stats in Discord
 - `pstats html` – genereer een HTML-rapport en upload bestand
+
+## Nieuw in deze versie
+
+- **Join/leave tracking** (server instroom/uitstroom)
+- **Random quote per gebruiker**, dagelijks vernieuwbaar
+- **Actiefste uur per gebruiker**
+- **Verbeterde HTML** met meer kleur, secties en nette scheiding
 
 ## Opslag
 

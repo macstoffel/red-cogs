@@ -1,5 +1,7 @@
 {
-  "author": ["MacStoffel","Matty Ubar"],
+  "author": [
+    "you"
+  ],
   "name": "PisgStats",
   "install_msg": "Pisg-style statistieken voor Discord. Gebruik [p]pstats help voor commands.",
   "short": "Pisg-achtige statistieken en HTML-rapporten.",
@@ -14,6 +16,5 @@
     "html"
   ],
   "requirements": [],
-  "end_user_data_statement": "Deze cog slaat statistieken op over berichten (aantal, tijdstip, woordfrequenties, emoji, links). Inhoud van berichten wordt niet permanent opgeslagen; alleen geaggregeerde tellingen en beperkte metadata."
-  "version": "0.1"
+  "end_user_data_statement": "Deze cog slaat statistieken op over berichten (aantal, tijdstip, woordfrequenties, emoji, links, joins/leaves, en een willekeurige quote). Inhoud van berichten wordt niet permanent opgeslagen; alleen geaggregeerde tellingen en een random quote per gebruiker."
 }
