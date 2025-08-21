@@ -326,8 +326,11 @@ class PisgStats(commands.Cog):
             d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
             last_days.append((d, day_hist.get(d, 0)))
 
-        # Toevoegen: berichten per dag (laatste 31 dagen) als verticale SVG-chart
-        days_svg = svg_bar_chart_vertical("Berichten per dag (laatste 31 dagen)", last_days, width=900, height=300, margin=60, max_bars=31)
+        # Labels verkorten naar MM-DD
+        short_days = [(d[5:], n) for d, n in last_days]
+
+        # Maak bredere SVG-chart
+        days_svg = svg_bar_chart_vertical("Berichten per dag (laatste 31 dagen)", short_days, width=1200, height=300, margin=60, max_bars=31)
 
         # Top lijsten
         top_users = sorted(users.items(), key=lambda kv: kv[1].get("messages", 0), reverse=True)[:20]
