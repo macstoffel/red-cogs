@@ -2,7 +2,7 @@ import asyncio
 import re
 import math
 import html
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from collections import Counter, defaultdict
 
 import discord
@@ -86,6 +86,7 @@ class PisgStats(commands.Cog):
     """Pisg-achtige statistieken voor Discord, met HTML-rapport."""
     def __init__(self, bot):
         self.bot = bot
+        self.start_time = datetime.utcnow().replace(tzinfo=timezone.utc)  # Toegevoegd
         self.config = Config.get_conf(self, identifier=0xBEEFCAFE1234, force_registration=True)
         default_guild = {
             "tracked_channels": [],
@@ -305,12 +306,19 @@ class PisgStats(commands.Cog):
         conf = await self.config.guild(ctx.guild).all()
         guild = ctx.guild
 
-        # voorbereiden data
-        users = conf["users"]
-        channels = conf["channels"]
-        words = conf["words"]
-        emojis = conf["emojis"]
-        hour_hist = conf["hour_hist"]
+        # Bereken runtime
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        runtime = now - self.start_time
+        runtime_str = str(runtime).split('.')[0]  # zonder microseconden
+        start_str = self.start_time.strftime('%Y-%m-%d %H:%M:%SZ')
+
+        # Laatste 31 dagen berichten
+        day_hist = conf["day_hist"]
+        last_days = []
+        for i in range(30, -1, -1):
+            d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+            last_days.append((d, day_hist.get(d, 0)))
+
         # Top lijsten
         top_users = sorted(users.items(), key=lambda kv: kv[1].get("messages", 0), reverse=True)[:20]
         top_channels = sorted(channels.items(), key=lambda kv: kv[1].get("messages", 0), reverse=True)[:20]
@@ -360,7 +368,17 @@ class PisgStats(commands.Cog):
 
         html_parts = [f"<!doctype html><html><head><meta charset='utf-8'><title>PisgStats - {html.escape(guild.name)}</title>{css}</head><body>"]
         html_parts.append(f"<h1>PisgStats – {html.escape(guild.name)}</h1>")
-        html_parts.append(f"<p>Gegenereerd op {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%SZ')} • Totaal berichten: <b>{conf['messages']}</b> • Tekens: <b>{conf['characters']}</b> • Links: <b>{conf['links']}</b> • Bijlagen: <b>{conf['attachments']}</b></p>")
+        html_parts.append(
+            f"<p>Gegenereerd op {now.strftime('%Y-%m-%d %H:%M:%SZ')} • Cog gestart op <b>{start_str}</b> • Runtime: <b>{runtime_str}</b><br>"
+            f"Totaal berichten: <b>{conf['messages']}</b> • Tekens: <b>{conf['characters']}</b> • Links: <b>{conf['links']}</b> • Bijlagen: <b>{conf['attachments']}</b></p>"
+        )
+
+        # Toevoegen: berichten per dag (laatste 31 dagen)
+        html_parts.append("<h2>Berichten per dag (laatste 31 dagen)</h2>")
+        html_parts.append("<table><tr><th>Datum</th><th>Berichten</th></tr>")
+        for d, n in last_days:
+            html_parts.append(f"<tr><td>{d}</td><td>{n}</td></tr>")
+        html_parts.append("</table>")
 
         # charts
         html_parts.append("<div class='cols'>")
