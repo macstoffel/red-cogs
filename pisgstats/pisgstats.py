@@ -325,7 +325,7 @@ class PisgStats(commands.Cog):
         for cid, c in top_channels:
             name = f"#{getattr(guild.get_channel(int(cid)), 'name', cid)}"
             ch_pairs.append((name, c.get("messages", 0)))
-        channels_svg = svg_bar_chart("Kanaalactiviteit (berichten)", ch_pairs, width=1200, margin=300)
+        channels_svg = svg_bar_chart("Kanaalactiviteit (berichten)", ch_pairs, width=700, margin=300)
 
         # HTML opbouw
         def user_row(uid, u):
