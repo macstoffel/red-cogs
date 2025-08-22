@@ -15,6 +15,7 @@ Een Redbot Cog die alle berichten, edits, deletes en member join/leave events lo
   - `[p]logset addchannel #kanaal`
   - `[p]logset removechannel #kanaal`
   - `[p]logset status`
+  - `[p]logset harvesthistory`
 
 ## Installatie
 
