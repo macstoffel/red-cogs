@@ -1,40 +1,42 @@
 # LoggingCog
 
-Een Redbot Cog die alle berichten, edits, deletes en member join/leave events logt naar logbestanden.
+Een Redbot Cog die alle berichten, edits, deletes en member join/leave events logt naar **per-kanaal logbestanden** én één centraal logbestand ala mIRC. Zodoende is dit logbestand te gebruiken met pisg [https://pisg.github.io/]
 
 ## Logformaat
 - Alleen tijd, geen datum
 - Tijd altijd tussen blokhaken `[08:12:32]`
 - Gebruikersnamen altijd tussen `< >`
+- Kanaalnaam voorafgegaan door `#`
 
 Voorbeeld:
-[08:12:32] [MESSAGE] #general <MacStoffel>: Hallo wereld!
-[08:15:01] [EDIT] #general <MacStoffel>: 'Hallo wereld!' -> 'Hallo allemaal!'
-[08:20:44] [DELETE] #general <MacStoffel>: Hallo allemaal!
+```
+[08:12:32] [MESSAGE] #general <MacStoffel> Hallo wereld!
+[08:15:01] [EDIT] #general <MacStoffel> 'Hallo wereld!' -> 'Hallo allemaal!'
+[08:20:44] [DELETE] #general <MacStoffel> Hallo allemaal!
 [08:22:10] [JOIN] <NieuweGebruiker> (1234567890)
-
-markdown
-Copy
-Edit
+```
 
 ## Functies
-- Dagelijkse logbestanden (`YYYY-MM-DD.log`)
-- Een doorlopend `history.log` bestand
+- **Per-kanaal logbestanden** (bijv. `general.log`)
+- **Centraal logbestand** (`all_channels.log`) met álle logging
+- **Kanaalgeschiedenis harvesten**: per kanaal (`<kanaalnaam>_history.log`) of alle kanalen tegelijk
 - Logging van:
   - Berichten
   - Bewerken/verwijderen van berichten
   - Member joins en leaves
-- Commando om **volledige historie** te loggen: `[p]logset harvesthistory`
+- Commando om **volledige historie** te loggen: `[p]logset harvesthistory` (alle kanalen) of `[p]logset harvestchannel #kanaal` (één kanaal)
 
 ## Installatie
 1. Voeg je repo toe aan Redbot:
-2. [p]repo add MacStoffel https://github.com/macstoffel/red-cogs
-3. [p]cog install MacStoffel loggingcog
-4. [p]load loggingcog
-
+   ```
+   [p]repo add MacStoffel https://github.com/macstoffel/red-cogs
+   [p]cog install MacStoffel loggingcog
+   [p]load loggingcog
+   ```
 2. Controleer de instellingen:
-[p]logset status
-
+   ```
+   [p]logset status
+   ```
 3. Pas naar wens aan.
 
 ## Config commando’s
@@ -45,7 +47,8 @@ Edit
 - `[p]logset removechannel #kanaal` → verwijder kanaal  
 - `[p]logset clearchannels` → verwijder alle kanalen (logt niets)  
 - `[p]logset allchannels` → logt alle kanalen  
-- `[p]logset harvesthistory` → schrijf de volledige historie van de ingestelde kanalen weg  
+- `[p]logset harvesthistory` → schrijf de volledige historie van alle ingestelde kanalen weg  
+- `[p]logset harvestchannel #kanaal` → schrijf de volledige historie van één kanaal weg  
 - `[p]logset status` → toon instellingen  
 
 ## Data

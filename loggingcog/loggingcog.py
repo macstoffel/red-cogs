@@ -4,7 +4,7 @@ import datetime
 from redbot.core import commands, Config, checks
 
 class LoggingCog(commands.Cog):
-    """Logt alle berichten, edits, deletes en member events naar logbestanden."""
+    """Logt alle berichten, edits, deletes en member events naar per-kanaal logbestanden."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -24,36 +24,37 @@ class LoggingCog(commands.Cog):
     # Helper functies
     # -------------------------------
 
-    async def get_log_files(self, guild: discord.Guild):
-        """Zorgt dat de juiste logfile paden bestaan."""
+    def get_channel_log_file(self, log_dir, channel: discord.TextChannel, suffix=""):
+        """Geeft het pad voor een kanaal-logbestand."""
+        safe_name = channel.name.replace("/", "_").replace("\\", "_")
+        return os.path.join(log_dir, f"{safe_name}{suffix}.log")
+
+    async def log(self, guild: discord.Guild, channel: discord.TextChannel, content: str, timestamp: datetime.datetime = None, suffix=""):
+        """Schrijft een regel naar het kanaal-logbestand én naar een centrale logfile."""
         settings = await self.config.guild(guild).all()
         log_dir = settings["log_path"]
 
         if not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
 
-        today = datetime.date.today().strftime("%Y-%m-%d")
-        daily_file = os.path.join(log_dir, f"{today}.log")
-        history_file = os.path.join(log_dir, "history.log")
+        log_file = self.get_channel_log_file(log_dir, channel, suffix)
+        central_file = os.path.join(log_dir, "all_channels.log")  # Centraal logbestand
 
-        # Zorg dat de bestanden bestaan
-        for file in [daily_file, history_file]:
-            if not os.path.exists(file):
-                with open(file, "a", encoding="utf-8") as f:
-                    f.write(f"--- Logging gestart {datetime.datetime.now()} ---\n")
+        if not os.path.exists(log_file):
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"--- Logging gestart {datetime.datetime.now()} ---\n")
+        if not os.path.exists(central_file):
+            with open(central_file, "a", encoding="utf-8") as f:
+                f.write(f"--- Centrale logging gestart {datetime.datetime.now()} ---\n")
 
-        return daily_file, history_file
-
-    async def log(self, guild: discord.Guild, content: str, timestamp: datetime.datetime = None):
-        """Schrijft een regel naar zowel dagbestand als history.log."""
-        daily_file, history_file = await self.get_log_files(guild)
         if timestamp is None:
             timestamp = datetime.datetime.now()
-        line = f"[{timestamp.strftime('%H:%M:%S')}] {content}\n"
+        line = f"[{timestamp.strftime('%H:%M:%S')}] #{channel.name} {content}\n"
 
-        for file in [daily_file, history_file]:
-            with open(file, "a", encoding="utf-8") as f:
-                f.write(line)
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(line)
+        with open(central_file, "a", encoding="utf-8") as f:
+            f.write(line)
 
     async def is_logged_channel(self, guild: discord.Guild, channel: discord.TextChannel) -> bool:
         settings = await self.config.guild(guild).all()
@@ -74,7 +75,8 @@ class LoggingCog(commands.Cog):
             if await self.is_logged_channel(message.guild, message.channel):
                 await self.log(
                     message.guild,
-                    f"[MESSAGE] #{message.channel} <{message.author}>: {message.content}",
+                    message.channel,
+                    f"[MESSAGE] <{message.author}> {message.content}",
                     timestamp=message.created_at
                 )
 
@@ -84,7 +86,8 @@ class LoggingCog(commands.Cog):
             if await self.is_logged_channel(after.guild, after.channel):
                 await self.log(
                     after.guild,
-                    f"[EDIT] #{after.channel} <{after.author}>: '{before.content}' -> '{after.content}'",
+                    after.channel,
+                    f"[EDIT] <{after.author}> '{before.content}' -> '{after.content}'",
                     timestamp=after.edited_at or after.created_at
                 )
 
@@ -94,17 +97,29 @@ class LoggingCog(commands.Cog):
             if await self.is_logged_channel(message.guild, message.channel):
                 await self.log(
                     message.guild,
-                    f"[DELETE] #{message.channel} <{message.author}>: {message.content}",
+                    message.channel,
+                    f"[DELETE] <{message.author}> {message.content}",
                     timestamp=message.created_at
                 )
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        await self.log(member.guild, f"[JOIN] <{member}> ({member.id})")
+        # Log naar elk kanaal dat gelogd wordt
+        guild = member.guild
+        settings = await self.config.guild(guild).all()
+        log_dir = settings["log_path"]
+        for channel in guild.text_channels:
+            if await self.is_logged_channel(guild, channel):
+                await self.log(guild, channel, f"[JOIN] <{member}> ({member.id})")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        await self.log(member.guild, f"[LEAVE] <{member}> ({member.id})")
+        guild = member.guild
+        settings = await self.config.guild(guild).all()
+        log_dir = settings["log_path"]
+        for channel in guild.text_channels:
+            if await self.is_logged_channel(guild, channel):
+                await self.log(guild, channel, f"[LEAVE] <{member}> ({member.id})")
 
     # -------------------------------
     # Commands
@@ -186,7 +201,7 @@ class LoggingCog(commands.Cog):
 
     @logset.command()
     async def harvesthistory(self, ctx):
-        """Log de volledige kanaalgeschiedenis in alle ingestelde kanalen."""
+        """Log de volledige kanaalgeschiedenis in alle ingestelde kanalen (per kanaalbestand)."""
         await ctx.send("⏳ Start met ophalen van kanaalgeschiedenis... Dit kan lang duren!")
 
         count = 0
@@ -194,14 +209,21 @@ class LoggingCog(commands.Cog):
             if not await self.is_logged_channel(ctx.guild, channel):
                 continue
 
+            settings = await self.config.guild(ctx.guild).all()
+            log_dir = settings["log_path"]
+            history_file = self.get_channel_log_file(log_dir, channel, "_history")
+
+            # Zorg dat het bestand bestaat
+            if not os.path.exists(history_file):
+                with open(history_file, "a", encoding="utf-8") as f:
+                    f.write(f"--- History harvesting gestart {datetime.datetime.now()} ---\n")
+
             try:
                 async for message in channel.history(limit=None, oldest_first=True):
                     if not message.author.bot:
-                        await self.log(
-                            ctx.guild,
-                            f"<{message.author}> {message.content}",
-                            timestamp=message.created_at
-                        )
+                        line = f"[{message.created_at.strftime('%H:%M:%S')}] <{message.author}> {message.content}\n"
+                        with open(history_file, "a", encoding="utf-8") as f:
+                            f.write(line)
                         count += 1
             except discord.Forbidden:
                 await ctx.send(f"⚠️ Geen toegang tot {channel.mention}, overslaan.")
@@ -209,3 +231,34 @@ class LoggingCog(commands.Cog):
                 await ctx.send(f"⚠️ Fout bij ophalen berichten van {channel.mention}, overslaan.")
 
         await ctx.send(f"✅ Geschiedenis harvesting voltooid. {count} berichten gelogd.")
+
+    @logset.command()
+    async def harvestchannel(self, ctx, channel: discord.TextChannel):
+        """Log de volledige geschiedenis van één kanaal (in apart history-bestand)."""
+        if not await self.is_logged_channel(ctx.guild, channel):
+            await ctx.send("⚠️ Dit kanaal staat niet op de logginglijst.")
+            return
+
+        settings = await self.config.guild(ctx.guild).all()
+        log_dir = settings["log_path"]
+        history_file = self.get_channel_log_file(log_dir, channel, "_history")
+
+        if not os.path.exists(history_file):
+            with open(history_file, "a", encoding="utf-8") as f:
+                f.write(f"--- History harvesting gestart {datetime.datetime.now()} ---\n")
+
+        count = 0
+        await ctx.send(f"⏳ Start met ophalen van geschiedenis uit {channel.mention}...")
+        try:
+            async for message in channel.history(limit=None, oldest_first=True):
+                if not message.author.bot:
+                    line = f"[{message.created_at.strftime('%H:%M:%S')}] <{message.author}> {message.content}\n"
+                    with open(history_file, "a", encoding="utf-8") as f:
+                        f.write(line)
+                    count += 1
+        except discord.Forbidden:
+            await ctx.send(f"⚠️ Geen toegang tot {channel.mention}.")
+        except discord.HTTPException:
+            await ctx.send(f"⚠️ Fout bij ophalen berichten van {channel.mention}.")
+
+        await ctx.send(f"✅ Geschiedenis harvesting voltooid voor {channel.mention}. {count} berichten gelogd.")
