@@ -44,10 +44,12 @@ class LoggingCog(commands.Cog):
 
         return daily_file, history_file
 
-    async def log(self, guild: discord.Guild, content: str):
+    async def log(self, guild: discord.Guild, content: str, timestamp: datetime.datetime = None):
         """Schrijft een regel naar zowel dagbestand als history.log."""
         daily_file, history_file = await self.get_log_files(guild)
-        line = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {content}\n"
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+        line = f"{timestamp.strftime('%Y-%m-%d %H:%M:%S')} {content}\n"
 
         for file in [daily_file, history_file]:
             with open(file, "a", encoding="utf-8") as f:
@@ -69,7 +71,8 @@ class LoggingCog(commands.Cog):
             if await self.is_logged_channel(message.guild, message.channel):
                 await self.log(
                     message.guild,
-                    f"[MESSAGE] #{message.channel} <{message.author}>: {message.content}"
+                    f"[MESSAGE] #{message.channel} <{message.author}>: {message.content}",
+                    timestamp=message.created_at
                 )
 
     @commands.Cog.listener()
@@ -78,7 +81,8 @@ class LoggingCog(commands.Cog):
             if await self.is_logged_channel(after.guild, after.channel):
                 await self.log(
                     after.guild,
-                    f"[EDIT] #{after.channel} <{after.author}>: '{before.content}' -> '{after.content}'"
+                    f"[EDIT] #{after.channel} <{after.author}>: '{before.content}' -> '{after.content}'",
+                    timestamp=after.edited_at or after.created_at
                 )
 
     @commands.Cog.listener()
@@ -87,7 +91,8 @@ class LoggingCog(commands.Cog):
             if await self.is_logged_channel(message.guild, message.channel):
                 await self.log(
                     message.guild,
-                    f"[DELETE] #{message.channel} <{message.author}>: {message.content}"
+                    f"[DELETE] #{message.channel} <{message.author}>: {message.content}",
+                    timestamp=message.created_at
                 )
 
     @commands.Cog.listener()
@@ -165,9 +170,8 @@ class LoggingCog(commands.Cog):
         await ctx.send("⏳ Start met ophalen van kanaalgeschiedenis... Dit kan lang duren!")
 
         settings = await self.config.guild(ctx.guild).all()
-        channels = settings["channels"]
-
         count = 0
+
         for channel in ctx.guild.text_channels:
             if not await self.is_logged_channel(ctx.guild, channel):
                 continue
@@ -177,7 +181,8 @@ class LoggingCog(commands.Cog):
                     if not message.author.bot:
                         await self.log(
                             ctx.guild,
-                            f"[HISTORY] #{channel} <{message.author}>: {message.content}"
+                            f"[HISTORY] #{channel} <{message.author}>: {message.content}",
+                            timestamp=message.created_at
                         )
                         count += 1
             except discord.Forbidden:
