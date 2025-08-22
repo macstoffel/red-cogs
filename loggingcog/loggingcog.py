@@ -199,7 +199,7 @@ class LoggingCog(commands.Cog):
                     if not message.author.bot:
                         await self.log(
                             ctx.guild,
-                            f"[HISTORY] #{channel} <{message.author}>: {message.content}",
+                            f"<{message.author}> {message.content}",
                             timestamp=message.created_at
                         )
                         count += 1
