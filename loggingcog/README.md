@@ -1,6 +1,6 @@
 # LoggingCog
 
-Een Redbot Cog die alle berichten, edits, deletes en member join/leave events logt naar logbestanden.
+Een Redbot Cog die alle berichten, edits, deletes en member join/leave events logt naar logbestanden in mIRC-formaat.
 
 ## Logformaat
 - Alleen tijd, geen datum
