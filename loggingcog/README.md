@@ -19,9 +19,9 @@ Een Redbot Cog die alle berichten, edits, deletes en member join/leave events lo
 ## Installatie
 
 1. Voeg je repo toe aan Redbot:
-[p]repo add MacStoffel https://github.com/macstoffel/red-cogs
-[p]cog install MacStoffel loggingcog
-[p]load loggingcog
+2. [p]repo add MacStoffel https://github.com/macstoffel/red-cogs
+3. [p]cog install MacStoffel loggingcog
+4. [p]load loggingcog
 
 markdown
 Copy
