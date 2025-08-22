@@ -157,6 +157,7 @@ class LoggingCog(commands.Cog):
             f"**Logging status:** {'✅ Aan' if settings['enabled'] else '❌ Uit'}\n"
             f"**Pad:** {settings['log_path']}\n"
             f"**Kanalen:** {ch_text}"
+        )
 
     @logset.command()
     async def harvesthistory(self, ctx):
@@ -185,5 +186,3 @@ class LoggingCog(commands.Cog):
                 await ctx.send(f"⚠️ Fout bij ophalen berichten van {channel.mention}, overslaan.")
 
         await ctx.send(f"✅ Geschiedenis harvesting voltooid. {count} berichten gelogd.")
-
-        )
