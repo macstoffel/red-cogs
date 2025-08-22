@@ -37,7 +37,8 @@ Voorbeeld:
    ```
    [p]logset status
    ```
-3. Pas naar wens aan.
+3. Pas naar wens aan. De logging werkt bij start op alle kanalen!!
+   ** !!Stel de map in voor de bestanden!! **
 
 ## Config commando’s
 
