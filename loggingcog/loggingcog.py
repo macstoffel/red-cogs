@@ -16,7 +16,7 @@ class LoggingCog(commands.Cog):
         default_guild = {
             "enabled": True,
             "log_path": "./logs",
-            "channels": []  # leeg = alle kanalen loggen
+            "channels": None  # None = alle kanalen, [] = geen kanalen
         }
         self.config.register_guild(**default_guild)
 
@@ -49,7 +49,7 @@ class LoggingCog(commands.Cog):
         daily_file, history_file = await self.get_log_files(guild)
         if timestamp is None:
             timestamp = datetime.datetime.now()
-        line = f"{timestamp.strftime('%Y-%m-%d %H:%M:%S')} {content}\n"
+        line = f"[{timestamp.strftime('%H:%M:%S')}] {content}\n"
 
         for file in [daily_file, history_file]:
             with open(file, "a", encoding="utf-8") as f:
@@ -57,9 +57,12 @@ class LoggingCog(commands.Cog):
 
     async def is_logged_channel(self, guild: discord.Guild, channel: discord.TextChannel) -> bool:
         settings = await self.config.guild(guild).all()
-        if not settings["channels"]:
+        channels = settings["channels"]
+        if channels is None:  # alle kanalen
             return True
-        return channel.id in settings["channels"]
+        if channels == []:  # geen kanalen
+            return False
+        return channel.id in channels
 
     # -------------------------------
     # Events
@@ -97,11 +100,11 @@ class LoggingCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        await self.log(member.guild, f"[JOIN] {member} ({member.id})")
+        await self.log(member.guild, f"[JOIN] <{member}> ({member.id})")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        await self.log(member.guild, f"[LEAVE] {member} ({member.id})")
+        await self.log(member.guild, f"[LEAVE] <{member}> ({member.id})")
 
     # -------------------------------
     # Commands
@@ -130,6 +133,8 @@ class LoggingCog(commands.Cog):
     async def addchannel(self, ctx, channel: discord.TextChannel):
         """Voeg een kanaal toe aan logging."""
         channels = await self.config.guild(ctx.guild).channels()
+        if channels is None:
+            channels = []
         if channel.id not in channels:
             channels.append(channel.id)
             await self.config.guild(ctx.guild).channels.set(channels)
@@ -141,7 +146,7 @@ class LoggingCog(commands.Cog):
     async def removechannel(self, ctx, channel: discord.TextChannel):
         """Verwijder een kanaal uit logging."""
         channels = await self.config.guild(ctx.guild).channels()
-        if channel.id in channels:
+        if channels and channel.id in channels:
             channels.remove(channel.id)
             await self.config.guild(ctx.guild).channels.set(channels)
             await ctx.send(f"✅ Kanaal {channel.mention} verwijderd uit logging.")
@@ -149,12 +154,27 @@ class LoggingCog(commands.Cog):
             await ctx.send("⚠️ Kanaal staat niet in de lijst.")
 
     @logset.command()
+    async def clearchannels(self, ctx):
+        """Verwijder alle kanalen uit logging (niets wordt gelogd)."""
+        await self.config.guild(ctx.guild).channels.set([])
+        await ctx.send("✅ Alle kanalen verwijderd uit logging. Er wordt nu niets gelogd.")
+
+    @logset.command()
+    async def allchannels(self, ctx):
+        """Reset logging naar alle kanalen."""
+        await self.config.guild(ctx.guild).channels.set(None)
+        await ctx.send("✅ Logging ingesteld op alle kanalen.")
+
+    @logset.command()
     async def status(self, ctx):
         """Toon de huidige instellingen."""
         settings = await self.config.guild(ctx.guild).all()
         channels = settings["channels"]
-        if not channels:
+
+        if channels is None:
             ch_text = "Alle kanalen"
+        elif channels == []:
+            ch_text = "Geen kanalen"
         else:
             ch_text = ", ".join(f"<#{c}>" for c in channels)
 
@@ -167,11 +187,9 @@ class LoggingCog(commands.Cog):
     @logset.command()
     async def harvesthistory(self, ctx):
         """Log de volledige kanaalgeschiedenis in alle ingestelde kanalen."""
-        await ctx.send("⏳ Start met ophalen van geschiedenis... Dit kan lang duren!")
+        await ctx.send("⏳ Start met ophalen van kanaalgeschiedenis... Dit kan lang duren!")
 
-        settings = await self.config.guild(ctx.guild).all()
         count = 0
-
         for channel in ctx.guild.text_channels:
             if not await self.is_logged_channel(ctx.guild, channel):
                 continue
