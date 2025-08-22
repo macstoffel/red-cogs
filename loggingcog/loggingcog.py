@@ -157,4 +157,33 @@ class LoggingCog(commands.Cog):
             f"**Logging status:** {'✅ Aan' if settings['enabled'] else '❌ Uit'}\n"
             f"**Pad:** {settings['log_path']}\n"
             f"**Kanalen:** {ch_text}"
+
+    @logset.command()
+    async def harvesthistory(self, ctx):
+        """Log de volledige kanaalgeschiedenis in alle ingestelde kanalen."""
+        await ctx.send("⏳ Start met ophalen van kanaalgeschiedenis... Dit kan lang duren!")
+
+        settings = await self.config.guild(ctx.guild).all()
+        channels = settings["channels"]
+
+        count = 0
+        for channel in ctx.guild.text_channels:
+            if not await self.is_logged_channel(ctx.guild, channel):
+                continue
+
+            try:
+                async for message in channel.history(limit=None, oldest_first=True):
+                    if not message.author.bot:
+                        await self.log(
+                            ctx.guild,
+                            f"[HISTORY] #{channel} <{message.author}>: {message.content}"
+                        )
+                        count += 1
+            except discord.Forbidden:
+                await ctx.send(f"⚠️ Geen toegang tot {channel.mention}, overslaan.")
+            except discord.HTTPException:
+                await ctx.send(f"⚠️ Fout bij ophalen berichten van {channel.mention}, overslaan.")
+
+        await ctx.send(f"✅ Geschiedenis harvesting voltooid. {count} berichten gelogd.")
+
         )
