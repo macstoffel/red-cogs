@@ -1,5 +1,5 @@
 {
-  "name": "LoggingCog",
+  "name": "loggingcog",
   "short": "Volledige logging van kanalen en members",
   "description": "Logt berichten, edits, deletes en join/leave events naar dagelijkse logbestanden en een doorlopend history.log.",
   "end_user_data_statement": "Deze cog logt berichten en user-events naar lokale logbestanden op de server van de bot. Er worden geen gegevens gedeeld met derden.",
