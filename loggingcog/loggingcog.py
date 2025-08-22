@@ -167,7 +167,7 @@ class LoggingCog(commands.Cog):
     @logset.command()
     async def harvesthistory(self, ctx):
         """Log de volledige kanaalgeschiedenis in alle ingestelde kanalen."""
-        await ctx.send("⏳ Start met ophalen van kanaalgeschiedenis... Dit kan lang duren!")
+        await ctx.send("⏳ Start met ophalen van geschiedenis... Dit kan lang duren!")
 
         settings = await self.config.guild(ctx.guild).all()
         count = 0
