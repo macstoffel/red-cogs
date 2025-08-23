@@ -1,6 +1,7 @@
 import discord
 import os
 import datetime
+import glob
 from redbot.core import commands, Config, checks
 
 class LoggingCog(commands.Cog):
@@ -29,16 +30,30 @@ class LoggingCog(commands.Cog):
         safe_name = channel.name.replace("/", "_").replace("\\", "_")
         return os.path.join(log_dir, f"{safe_name}{suffix}.log")
 
+    def get_channel_daily_log_file(log_dir, channel: discord.TextChannel, date: datetime.date):
+        """Geeft het pad voor een kanaal-daglogbestand."""
+        safe_name = channel.name.replace("/", "_").replace("\\", "_")
+        return os.path.join(log_dir, f"{safe_name}_{date.isoformat()}.log")
+
     async def log(self, guild: discord.Guild, channel: discord.TextChannel, content: str, timestamp: datetime.datetime = None, suffix=""):
-        """Schrijft een regel naar het kanaal-logbestand én naar een centrale logfile."""
+        """Schrijft een regel naar het kanaal-daglogbestand én naar een centrale logfile. Houdt max 2 daglogs per kanaal."""
         settings = await self.config.guild(guild).all()
         log_dir = settings["log_path"]
 
         if not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
 
-        log_file = self.get_channel_log_file(log_dir, channel, suffix)
-        central_file = os.path.join(log_dir, "all_channels.log")  # Centraal logbestand
+        # Gebruik daglog per kanaal
+        log_file = get_channel_daily_log_file(log_dir, channel, (timestamp or datetime.datetime.now()).date())
+        central_file = os.path.join(log_dir, "all_channels.log")
+
+        # Daglog cleanup: max 2 per kanaal
+        safe_name = channel.name.replace("/", "_").replace("\\", "_")
+        pattern = os.path.join(log_dir, f"{safe_name}_*.log")
+        files = sorted(glob.glob(pattern))
+        if len(files) > 2:
+            for oldfile in files[:-2]:
+                os.remove(oldfile)
 
         if not os.path.exists(log_file):
             with open(log_file, "a", encoding="utf-8") as f:
