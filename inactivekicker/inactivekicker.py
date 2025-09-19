@@ -46,7 +46,7 @@ class InactiveKicker(commands.Cog):
             if ts:
                 laatste = datetime.utcfromtimestamp(ts)
             else:
-                laatste = member.joined_at or datetime.utcnow()  # fallback
+                laatste = (member.joined_at.replace(tzinfo=None) if member.joined_at else datetime.utcnow())  # fallback
 
             if laatste < cutoff:
                 inactieve.append(member)
