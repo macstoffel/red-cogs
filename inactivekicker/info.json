@@ -1,0 +1,10 @@
+{
+  "author": ["MacStoffel"],
+  "install_msg": "InactiveKicker geladen! Gebruik `[p]inactive <rol> <dagen> [show|kick]`.",
+  "name": "InactiveKicker",
+  "short": "Toon of kick inactieve leden.",
+  "description": "Een cog die leden toont of verwijderd die al X dagen inactief zijn. Activiteit wordt bijgehouden via berichten en voice-join events.",
+  "requirements": [],
+  "tags": ["moderation", "inactive", "kick"],
+  "min_bot_version": "3.5.0"
+}
