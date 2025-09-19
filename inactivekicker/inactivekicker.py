@@ -75,22 +75,39 @@ class InactiveKicker(commands.Cog):
     async def import_seen(self, ctx):
         """
         Importeer laatste activiteit uit AAA3A's Seen cog naar InactiveKicker.
+        Geeft ook een lijst van leden zonder Seen-data.
         """
         seen_config = Config.get_conf("Seen", identifier=205192943327321000143939875896557571750)
         members_data = await seen_config.all_members()
         guild_id = str(ctx.guild.id)
         count = 0
+        geen_data = []
         if guild_id not in members_data:
             await ctx.send("Geen Seen-data gevonden voor deze server.")
             return
         guild_members = members_data[guild_id]
         global_data = await seen_config.all()
         for member in ctx.guild.members:
-            mdata = guild_members.get(str(member.id), {})
+            member_id = str(member.id)
+            if member_id not in guild_members:
+                geen_data.append(member.display_name)
+                continue
+            mdata = guild_members[member_id]
             custom_id = mdata.get("message")
-            if custom_id:
-                message_data = global_data.get("message", {}).get(custom_id)
-                if message_data and "seen" in message_data:
-                    await self.config.member(member).last_active.set(float(message_data["seen"]))
-                    count += 1
+            if not custom_id:
+                geen_data.append(member.display_name)
+                continue
+            message_data = global_data.get("message", {}).get(custom_id)
+            if not message_data or "seen" not in message_data:
+                geen_data.append(member.display_name)
+                continue
+            try:
+                await self.config.member(member).last_active.set(float(message_data["seen"]))
+                count += 1
+            except Exception as e:
+                print(f"Fout bij importeren voor {member.display_name}: {e}")
+                geen_data.append(member.display_name)
         await ctx.send(f"Geïmporteerd: laatste activiteit voor {count} leden uit Seen.")
+        if geen_data:
+            lijst = "\n".join(geen_data)
+            await ctx.send(f"Geen Seen-data gevonden voor:\n{lijst[:1900]}")
