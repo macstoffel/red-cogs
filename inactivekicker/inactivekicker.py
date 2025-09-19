@@ -79,13 +79,13 @@ class InactiveKicker(commands.Cog):
         """
         seen_config = Config.get_conf("Seen", identifier=205192943327321000143939875896557571750)
         members_data = await seen_config.all_members()
-        guild_id = ctx.guild.id  # <-- integer!
-        count = 0
-        geen_data = []
+        guild_id = ctx.guild.id
+        print(f"members_data keys: {list(members_data.keys())}")
         if guild_id not in members_data:
             await ctx.send("Geen Seen-data gevonden voor deze server.")
             return
         guild_members = members_data[guild_id]
+        print(f"guild_members keys: {list(guild_members.keys())}")
         global_data = await seen_config.all()
         for member in ctx.guild.members:
             member_id = str(member.id)
