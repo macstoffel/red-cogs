@@ -77,7 +77,7 @@ class InactiveKicker(commands.Cog):
         Importeer laatste activiteit uit AAA3A's Seen cog naar InactiveKicker.
         """
         seen_config = Config.get_conf("Seen", identifier=205192943327321000143939875896557571750)
-        members_data = await seen_config.all_members(ctx.guild)
+        members_data = await seen_config.all_members()
         guild_id = str(ctx.guild.id)
         count = 0
         if guild_id not in members_data:
