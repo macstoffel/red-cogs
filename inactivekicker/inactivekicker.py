@@ -43,8 +43,9 @@ class InactiveKicker(commands.Cog):
 
         for member in role.members:
             ts = await self.config.member(member).last_active()
+            print(f"{member.display_name}: last_active={ts}")
             if ts:
-                laatste = datetime.utcfromtimestamp(ts)
+                laatste = datetime.utcfromtimestamp(float(ts))
             else:
                 laatste = (member.joined_at.replace(tzinfo=None) if member.joined_at else datetime.utcnow())  # fallback
 
@@ -87,6 +88,6 @@ class InactiveKicker(commands.Cog):
                 global_data = await seen_config.all()
                 message_data = global_data.get("message", {}).get(custom_id)
                 if message_data and "seen" in message_data:
-                    await self.config.member(member).last_active.set(message_data["seen"])
+                    await self.config.member(member).last_active.set(float(message_data["seen"]))
                     count += 1
         await ctx.send(f"Geïmporteerd: laatste activiteit voor {count} leden uit Seen.")
