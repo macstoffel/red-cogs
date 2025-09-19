@@ -68,3 +68,25 @@ class InactiveKicker(commands.Cog):
             await ctx.send(f"{gekickt} gebruiker(s) gekickt.")
         else:
             await ctx.send("Ongeldige actie. Gebruik 'show' of 'kick'.")
+
+    @commands.command()
+    @commands.is_owner()
+    async def import_seen(self, ctx):
+        """
+        Importeer laatste activiteit uit AAA3A's Seen cog naar InactiveKicker.
+        """
+        seen_config = Config.get_conf("Seen", identifier=205192943327321000143939875896557571750)
+        members_data = await seen_config.all_members(ctx.guild)
+        count = 0
+        for member in ctx.guild.members:
+            mdata = members_data.get(str(member.id), {})
+            # "message" is the last message activity type
+            custom_id = mdata.get("message")
+            if custom_id:
+                # Get global data for this custom_id
+                global_data = await seen_config.all()
+                message_data = global_data.get("message", {}).get(custom_id)
+                if message_data and "seen" in message_data:
+                    await self.config.member(member).last_active.set(message_data["seen"])
+                    count += 1
+        await ctx.send(f"Geïmporteerd: laatste activiteit voor {count} leden uit Seen.")

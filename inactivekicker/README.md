@@ -31,14 +31,26 @@ Voeg eerst je GitHub repo toe aan je Redbot instance:
 - Als er geen activiteit bekend is, wordt `joined_at` gebruikt als fallback.  
 - Zo kun je betrouwbaarder inactiviteit meten.  
 
-## ⚠️ Waarschuwing
+## 🛠 Importeren uit Seen cog
 
-Gebruik altijd eerst **show** om te controleren wie er gekickt zal worden.  
-De bot moet de permissie **Kick Members** hebben om leden te verwijderen.
+Je kunt nu de laatste activiteit van leden importeren uit AAA3A's **Seen** cog:
+
+- Zorg dat de Seen cog geïnstalleerd en geladen is.
+- Gebruik het commando:  
+  ```
+  [p]import_seen
+  ```
+  Dit vult de laatste activiteit in voor alle leden op basis van de Seen-data.
+
+## ⚠️ Vereisten
+
+- **InactiveKicker** en **Seen** cog moeten beide geïnstalleerd zijn voor import.
+- Gebruik altijd eerst **show** om te controleren wie er gekickt zal worden.  
+- De bot moet de permissie **Kick Members** hebben om leden te verwijderen.
 
 ---
 
 ## 📜 Info
 
 - **Auteur**: MacStoffel  
-- **Tags**: moderation, inactive, kick  
+- **Tags**: moderation, inactive, kick
