@@ -78,14 +78,17 @@ class InactiveKicker(commands.Cog):
         """
         seen_config = Config.get_conf("Seen", identifier=205192943327321000143939875896557571750)
         members_data = await seen_config.all_members(ctx.guild)
+        guild_id = str(ctx.guild.id)
         count = 0
+        if guild_id not in members_data:
+            await ctx.send("Geen Seen-data gevonden voor deze server.")
+            return
+        guild_members = members_data[guild_id]
+        global_data = await seen_config.all()
         for member in ctx.guild.members:
-            mdata = members_data.get(str(member.id), {})
-            # "message" is the last message activity type
+            mdata = guild_members.get(str(member.id), {})
             custom_id = mdata.get("message")
             if custom_id:
-                # Get global data for this custom_id
-                global_data = await seen_config.all()
                 message_data = global_data.get("message", {}).get(custom_id)
                 if message_data and "seen" in message_data:
                     await self.config.member(member).last_active.set(float(message_data["seen"]))
