@@ -30,7 +30,7 @@ class LoggingCog(commands.Cog):
         safe_name = channel.name.replace("/", "_").replace("\\", "_")
         return os.path.join(log_dir, f"{safe_name}{suffix}.log")
 
-    def get_channel_daily_log_file(log_dir, channel: discord.TextChannel, date: datetime.date):
+    def get_channel_daily_log_file(self, log_dir, channel: discord.TextChannel, date: datetime.date):
         """Geeft het pad voor een kanaal-daglogbestand."""
         safe_name = channel.name.replace("/", "_").replace("\\", "_")
         return os.path.join(log_dir, f"{safe_name}_{date.isoformat()}.log")
@@ -44,7 +44,7 @@ class LoggingCog(commands.Cog):
             os.makedirs(log_dir, exist_ok=True)
 
         # Gebruik daglog per kanaal
-        log_file = get_channel_daily_log_file(log_dir, channel, (timestamp or datetime.datetime.now()).date())
+        log_file = self.get_channel_daily_log_file(log_dir, channel, (timestamp or datetime.datetime.now()).date())
         central_file = os.path.join(log_dir, "all_channels.log")
 
         # Daglog cleanup: max 2 per kanaal
