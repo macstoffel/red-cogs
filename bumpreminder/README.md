@@ -75,7 +75,7 @@ Repo verwijderen:
 ---
 
 ## ✅ Auteurs
-- JouwNaam
+- MacStoffel
 
 ## ✅ License
 MIT
