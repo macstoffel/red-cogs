@@ -143,3 +143,7 @@ class BumpReminder(commands.Cog):
         current = await guild_conf.thank_enabled()
         await guild_conf.thank_enabled.set(not current)
         await ctx.send(f"✅ Thank-you berichten {'ingeschakeld' if not current else 'uitgeschakeld'}.")
+        
+async def setup(bot):
+    """Redbot expects an async setup(bot) to add the cog."""
+    await bot.add_cog(BumpReminder(bot))
