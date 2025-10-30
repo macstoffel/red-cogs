@@ -69,6 +69,10 @@ class BumpReminder(commands.Cog):
         if not message.guild:
             return
 
+        # Ignore other bots (only accept messages from known bump-bots)
+        if message.author.bot and getattr(message.author, "id", None) not in self.BUMP_BOT_IDS:
+            return
+
         # debug log every message (can be noisy; keep at debug level)
         self.logger.debug("on_message guild=%s author=%s bot=%s content_len=%s embeds=%s",
                           getattr(message.guild, "id", None),
