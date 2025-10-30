@@ -1,5 +1,5 @@
 {
-    "author": ["JouwNaam"],
+    "author": ["MacStoffel"],
     "name": "BumpReminder",
     "short": "Automatische bump reminders voor Disboard.",
     "description": "Stuurt 2 uur na een succesvolle Disboard bump automatisch een reminder met rol-ping.",
