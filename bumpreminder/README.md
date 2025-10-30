@@ -46,6 +46,32 @@ Vanaf nu:
 - Na 2 uur verschijnt automatisch een reminder in het ingestelde kanaal
 
 ---
+Alle settings:
+
+- [p]bumpset #kanaal @rol
+  - Doel: Stel reminder-kanaal en reminder-rol in.
+  - Perms: manage_guild / admin
+  - Voorbeeld: [p]bumpset #bumpkanal @Bumpers
+
+- [p]bumpsettings
+  - Doel: Toon huidige bump- en thank-you instellingen (kanaal, rol, thank-message, status).
+  - Perms: manage_guild / admin
+
+- [p]bumpthanks_setchannel [#kanaal]
+  - Doel: Stel kanaal in waar het "thank you" bericht na een bump wordt gestuurd. Geen argument = reset naar bump-kanaal.
+  - Perms: manage_guild / admin
+  - Voorbeeld: [p]bumpthanks_setchannel #dankkanaal
+
+- [p]bumpthanks_setmessage <bericht>
+  - Doel: Stel de thank-you boodschap in. Gebruik {user} om de beller te mentionen.
+  - Perms: manage_guild / admin
+  - Voorbeeld: [p]bumpthanks_setmessage Thanks for bumping, {user}!
+
+- [p]bumpthanks_toggle
+  - Doel: Schakel het thank-you bericht aan/uit.
+  - Perms: manage_guild / admin
+
+---
 
 ## ✅ Vereisten
 - De bot moet in het ingestelde kanaal:
