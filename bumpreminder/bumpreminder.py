@@ -2,6 +2,7 @@ import discord
 from redbot.core import commands, Config
 import asyncio
 import datetime
+import logging
 
 class BumpReminder(commands.Cog):
     """Stuur automatisch een bump reminder 2 uur na een succesvolle Disboard bump."""
@@ -18,17 +19,27 @@ class BumpReminder(commands.Cog):
             "thank_message": "Thanks for bumping the server, {user}!"
         }
         self.config.register_guild(**default_guild)
+        # logger
+        self.logger = logging.getLogger("red.bumpreminder")
+        # bekende bump-bot ids, voeg meer toe indien nodig
+        self.BUMP_BOT_IDS = {302050872383242240}  # Disboard default id
 
-    async def _reminder_task(self, guild: discord.Guild, channel_id: int, role_id: int):
-        """Background task: wacht 2 uur en stuur reminder."""
-        await asyncio.sleep(7200)  # 2 uur
+    async def _reminder_task(self, guild: discord.Guild, channel_id: int, role_id: int, delay: int = 7200):
+        """Background task: wacht delay seconden en stuur reminder."""
+        self.logger.debug("Reminder task started for guild %s, channel %s, role %s, delay=%s", guild.id, channel_id, role_id, delay)
+        await asyncio.sleep(delay)
         channel = guild.get_channel(channel_id) if channel_id else None
         role = guild.get_role(role_id) if role_id else None
         if channel and role:
             try:
                 await channel.send(f"{role.mention} Tijd om weer te bumpen! 🚀")
+                self.logger.info("Sent bump reminder in guild %s channel %s", guild.id, channel_id)
             except discord.Forbidden:
-                pass
+                self.logger.warning("Missing permission to send reminder in guild %s channel %s", guild.id, channel_id)
+            except Exception as e:
+                self.logger.exception("Failed to send reminder: %s", e)
+        else:
+            self.logger.debug("Reminder aborted: channel or role missing (channel=%s role=%s)", channel, role)
 
     # ------------------------
     # Activiteit tracken
@@ -38,39 +49,80 @@ class BumpReminder(commands.Cog):
         if not message.guild:
             return
 
-        # Als Disboard bevestigt dat een bump succesvol was:
-        if message.author.bot and "Bump done" in (message.content or ""):
-            # save timestamp
-            guild_conf = self.config.guild(message.guild)
-            await guild_conf.last_bump.set(datetime.datetime.utcnow().timestamp())
+        # debug log every message (can be noisy; keep at debug level)
+        self.logger.debug("on_message guild=%s author=%s bot=%s content_len=%s embeds=%s",
+                          getattr(message.guild, "id", None),
+                          getattr(message.author, "id", None),
+                          message.author.bot,
+                          len(message.content or ""),
+                          len(message.embeds or []))
 
-            # stuur onmiddelijke "thank you" als ingeschakeld
-            data = await guild_conf.all()
-            thank_enabled = data.get("thank_enabled", True)
-            thank_channel_id = data.get("thank_channel_id")
-            thank_message = data.get("thank_message", "Thanks for bumping the server, {user}!")
-            thank_channel = (
-                message.guild.get_channel(thank_channel_id) if thank_channel_id else message.channel
-            )
-
-            if thank_enabled and thank_channel:
+        # Robuuste bump-detectie:
+        is_bump = False
+        # 1) author is known bump bot
+        if message.author and getattr(message.author, "id", None) in self.BUMP_BOT_IDS:
+            is_bump = True
+            self.logger.debug("Detected bump by known bot id %s", message.author.id)
+        # 2) content contains bump done (case-insensitive)
+        if not is_bump and message.content and "bump" in message.content.lower():
+            if "done" in message.content.lower() or "bumped" in message.content.lower():
+                is_bump = True
+                self.logger.debug("Detected bump by message content")
+        # 3) embed title/description contains bump keywords
+        if not is_bump and message.embeds:
+            for e in message.embeds:
                 try:
-                    embed = discord.Embed(
-                        title="Dankjewel voor het bumpen! 🎉",
-                        description=thank_message.format(user=message.author.mention),
-                        color=discord.Color.green(),
-                        timestamp=datetime.datetime.utcnow(),
-                    )
-                    embed.set_footer(text=f"{message.guild.name} • Bumped")
-                    await thank_channel.send(embed=embed)
-                except discord.Forbidden:
-                    pass
+                    title = (e.title or "").lower()
+                    desc = (e.description or "").lower()
+                    if "bump" in title or "bump" in desc or "bumped" in title or "bumped" in desc or "bump done" in title or "bump done" in desc:
+                        is_bump = True
+                        self.logger.debug("Detected bump by embed content")
+                        break
+                except Exception:
+                    continue
 
-            # start background reminder (non-blocking)
-            channel_id = data.get("channel_id")
-            role_id = data.get("role_id")
-            if channel_id and role_id:
-                asyncio.create_task(self._reminder_task(message.guild, channel_id, role_id))
+        if not is_bump:
+            return
+
+        self.logger.info("Processing bump event in guild %s by author %s", message.guild.id, message.author.id)
+
+        # save timestamp
+        guild_conf = self.config.guild(message.guild)
+        await guild_conf.last_bump.set(datetime.datetime.utcnow().timestamp())
+
+        # stuur onmiddelijke "thank you" als ingeschakeld
+        data = await guild_conf.all()
+        thank_enabled = data.get("thank_enabled", True)
+        thank_channel_id = data.get("thank_channel_id")
+        thank_message = data.get("thank_message", "Thanks for bumping the server, {user}!")
+        thank_channel = (
+            message.guild.get_channel(thank_channel_id) if thank_channel_id else message.channel
+        )
+
+        if thank_enabled and thank_channel:
+            try:
+                embed = discord.Embed(
+                    title="Dankjewel voor het bumpen! 🎉",
+                    description=thank_message.format(user=message.author.mention),
+                    color=discord.Color.green(),
+                    timestamp=datetime.datetime.utcnow(),
+                )
+                embed.set_footer(text=f"{message.guild.name} • Bumped")
+                await thank_channel.send(embed=embed)
+                self.logger.info("Sent thank-you embed in guild %s channel %s", message.guild.id, thank_channel.id)
+            except discord.Forbidden:
+                self.logger.warning("Missing permission to send thank-you in guild %s channel %s", message.guild.id, thank_channel.id)
+            except Exception as e:
+                self.logger.exception("Failed sending thank-you: %s", e)
+
+        # start background reminder (non-blocking)
+        channel_id = data.get("channel_id")
+        role_id = data.get("role_id")
+        if channel_id and role_id:
+            # default delay 2h (7200s)
+            asyncio.create_task(self._reminder_task(message.guild, channel_id, role_id))
+        else:
+            self.logger.debug("Reminder not scheduled: channel_id or role_id not configured for guild %s", message.guild.id)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
@@ -144,6 +196,67 @@ class BumpReminder(commands.Cog):
         await guild_conf.thank_enabled.set(not current)
         await ctx.send(f"✅ Thank-you berichten {'ingeschakeld' if not current else 'uitgeschakeld'}.")
         
+    # --- Test / debug commands ---
+
+    @commands.guild_only()
+    @commands.admin_or_permissions(manage_guild=True)
+    @commands.command()
+    async def bumpdebug(self, ctx):
+        """Toon huidige instellingen en last_bump (debug)."""
+        data = await self.config.guild(ctx.guild).all()
+        last_bump_ts = data.get("last_bump")
+        last_bump_human = (
+            datetime.datetime.utcfromtimestamp(last_bump_ts).isoformat() + " UTC" if last_bump_ts else "No record"
+        )
+        await ctx.send(
+            box := (
+                "BumpReminder debug:\n"
+                f"channel_id: {data.get('channel_id')}\n"
+                f"role_id: {data.get('role_id')}\n"
+                f"thank_channel_id: {data.get('thank_channel_id')}\n"
+                f"thank_enabled: {data.get('thank_enabled')}\n"
+                f"thank_message: {data.get('thank_message')}\n"
+                f"last_bump: {last_bump_human}\n"
+            )
+        )
+
+    @commands.guild_only()
+    @commands.admin_or_permissions(manage_guild=True)
+    @commands.command()
+    async def bumptest(self, ctx, delay: int = 10):
+        """Test de thank-you + reminder flow. delay = seconden voordat reminder gestuurd wordt (default 10s)."""
+        # Simuleer bump: stuur thank-you en schedule reminder with provided delay
+        guild_conf = self.config.guild(ctx.guild)
+        data = await guild_conf.all()
+        thank_enabled = data.get("thank_enabled", True)
+        thank_channel_id = data.get("thank_channel_id")
+        thank_message = data.get("thank_message", "Thanks for bumping the server, {user}!")
+        thank_channel = ctx.guild.get_channel(thank_channel_id) if thank_channel_id else ctx.channel
+
+        # update last_bump
+        await guild_conf.last_bump.set(datetime.datetime.utcnow().timestamp())
+        await ctx.send("✅ Simulated bump recorded; sending thank-you now and scheduling reminder.")
+
+        if thank_enabled and thank_channel:
+            try:
+                embed = discord.Embed(
+                    title="(Test) Dankjewel voor het bumpen! 🎉",
+                    description=thank_message.format(user=ctx.author.mention),
+                    color=discord.Color.green(),
+                    timestamp=datetime.datetime.utcnow(),
+                )
+                await thank_channel.send(embed=embed)
+            except discord.Forbidden:
+                await ctx.send("⚠️ Geen permissie om thank-you te sturen in het ingestelde kanaal.")
+
+        channel_id = data.get("channel_id")
+        role_id = data.get("role_id")
+        if channel_id and role_id:
+            asyncio.create_task(self._reminder_task(ctx.guild, channel_id, role_id, delay=delay))
+            await ctx.send(f"✅ Reminder scheduled in {delay} seconds.")
+        else:
+            await ctx.send("⚠️ Reminder niet gepland: channel of role niet ingesteld.")
+
+# module setup
 async def setup(bot):
-    """Redbot expects an async setup(bot) to add the cog."""
     await bot.add_cog(BumpReminder(bot))
