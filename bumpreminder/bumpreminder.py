@@ -4,6 +4,19 @@ import asyncio
 import datetime
 import logging
 
+class GetBumpView(discord.ui.View):
+    def __init__(self, bump_command: str = "/bump"):
+        super().__init__(timeout=None)
+        self.bump_command = bump_command
+
+    @discord.ui.button(label="Get /bump", style=discord.ButtonStyle.primary, custom_id="bumpreminder:get_bump")
+    async def get_bump(self, button: discord.ui.Button, interaction: discord.Interaction):
+        # Send ephemeral helper so user can copy the command
+        await interaction.response.send_message(
+            f"Gebruik het volgende commando om te bumpen in deze server:\n`{self.bump_command}`\n\nPlak het in de serverchat of gebruik de slash-command interface.",
+            ephemeral=True,
+        )
+
 class BumpReminder(commands.Cog):
     """Stuur automatisch een bump reminder 2 uur na een succesvolle Disboard bump. """
 
@@ -44,7 +57,8 @@ class BumpReminder(commands.Cog):
             role = guild.get_role(role_id) if role_id else None
             if channel and role:
                 try:
-                    await channel.send(f"{role.mention} Tijd om weer te bumpen! 🚀")
+                    reminder_text = f"{role.mention} Tijd om weer te bumpen! 🚀 Gebruik `/bump`"
+                    await channel.send(reminder_text, view=GetBumpView("/bump"))
                     self.logger.info("Sent bump reminder in guild %s channel %s", guild.id, channel_id)
                 except discord.Forbidden:
                     self.logger.warning("Missing permission to send reminder in guild %s channel %s", guild.id, channel_id)
@@ -69,15 +83,25 @@ class BumpReminder(commands.Cog):
         if not message.guild:
             return
 
+        # load guild config early to restrict operation to configured channel
+        guild_conf = self.config.guild(message.guild)
+        cfg = await guild_conf.all()
+        configured_channel_id = cfg.get("channel_id")
+
+        # Only react to messages in the configured reminder channel (if set)
+        if configured_channel_id and message.channel.id != configured_channel_id:
+            return
+
         # Ignore other bots (only accept messages from known bump-bots)
         if message.author.bot and getattr(message.author, "id", None) not in self.BUMP_BOT_IDS:
             return
 
         # debug log every message (can be noisy; keep at debug level)
-        self.logger.debug("on_message guild=%s author=%s bot=%s content_len=%s embeds=%s",
+        self.logger.debug("on_message guild=%s author=%s bot=%s channel=%s content_len=%s embeds=%s",
                           getattr(message.guild, "id", None),
                           getattr(message.author, "id", None),
                           message.author.bot,
+                          getattr(message.channel, "id", None),
                           len(message.content or ""),
                           len(message.embeds or []))
 
@@ -111,15 +135,13 @@ class BumpReminder(commands.Cog):
         self.logger.info("Processing bump event in guild %s by author %s", message.guild.id, message.author.id)
 
         # save timestamp
-        guild_conf = self.config.guild(message.guild)
         scheduled_at = datetime.datetime.utcnow().timestamp()
         await guild_conf.last_bump.set(scheduled_at)
 
         # stuur onmiddelijke "thank you" als ingeschakeld
-        data = await guild_conf.all()
-        thank_enabled = data.get("thank_enabled", True)
-        thank_channel_id = data.get("thank_channel_id")
-        thank_message = data.get("thank_message", "Thanks for bumping the server, {user}!")
+        thank_enabled = cfg.get("thank_enabled", True)
+        thank_channel_id = cfg.get("thank_channel_id")
+        thank_message = cfg.get("thank_message", "Thanks for bumping the server, {user}!")
         thank_channel = (
             message.guild.get_channel(thank_channel_id) if thank_channel_id else message.channel
         )
@@ -133,7 +155,8 @@ class BumpReminder(commands.Cog):
                     timestamp=datetime.datetime.utcnow(),
                 )
                 embed.set_footer(text=f"{message.guild.name} • Bumped")
-                await thank_channel.send(embed=embed)
+                # include helper button so users can easily get the /bump instruction
+                await thank_channel.send(embed=embed, view=GetBumpView("/bump"))
                 self.logger.info("Sent thank-you embed in guild %s channel %s", message.guild.id, thank_channel.id)
             except discord.Forbidden:
                 self.logger.warning("Missing permission to send thank-you in guild %s channel %s", message.guild.id, thank_channel.id)
@@ -141,8 +164,8 @@ class BumpReminder(commands.Cog):
                 self.logger.exception("Failed sending thank-you: %s", e)
 
         # start background reminder (non-blocking) — annuleer vorige als die nog loopt
-        channel_id = data.get("channel_id")
-        role_id = data.get("role_id")
+        channel_id = cfg.get("channel_id")
+        role_id = cfg.get("role_id")
         if channel_id and role_id:
             # cancel existing
             existing = self._scheduled_tasks.get(message.guild.id)
@@ -303,10 +326,13 @@ class BumpReminder(commands.Cog):
         mins, secs = divmod(rem, 60)
         remaining_str = f"{hrs}h {mins}m {secs}s"
 
+        # include helper button with /bump instruction
         await ctx.send(
             f"✅ Simulated bump recorded; thank-you sent and reminder scheduled in {delay} seconds.\n"
-            f"Volgende bump mogelijk op (UTC): {next_allowed_dt.isoformat()} — over {remaining_str}."
+            f"Volgende bump mogelijk op (UTC): {next_allowed_dt.isoformat()} — over {remaining_str}.",
+            view=GetBumpView("/bump"),
         )
+
 # module setup
 async def setup(bot):
     await bot.add_cog(BumpReminder(bot))
