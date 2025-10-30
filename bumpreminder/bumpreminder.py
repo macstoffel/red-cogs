@@ -5,7 +5,7 @@ import datetime
 import logging
 
 class BumpReminder(commands.Cog):
-    """Stuur automatisch een bump reminder 2 uur na een succesvolle Disboard bump."""
+    """Stuur automatisch een bump reminder 2 uur na een succesvolle Disboard bump. """
 
     def __init__(self, bot):
         self.bot = bot
