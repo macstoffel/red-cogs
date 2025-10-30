@@ -24,7 +24,8 @@ class BumpReminder(commands.Cog):
         # bekende bump-bot ids, voeg meer toe indien nodig
         self.BUMP_BOT_IDS = {302050872383242240}  # Disboard default id
         # houd per-guild geplande reminder tasks zodat we ze kunnen annuleren
-        self._scheduled_tasks: dict[int, asyncio.Task] = {}
+        # map guild_id -> (task, scheduled_at_timestamp, delay_seconds)
+        self._scheduled_tasks: dict[int, tuple[asyncio.Task, float, int]] = {}
 
     async def _reminder_task(self, guild: discord.Guild, channel_id: int, role_id: int, delay: int = 7200, scheduled_at: float = None):
         """Background task: wacht delay seconden en stuur reminder.
@@ -54,7 +55,8 @@ class BumpReminder(commands.Cog):
         finally:
             # opruimen van taak-registratie
             try:
-                if self._scheduled_tasks.get(guild.id) is asyncio.current_task():
+                tinfo = self._scheduled_tasks.get(guild.id)
+                if tinfo and tinfo[0] is asyncio.current_task():
                     self._scheduled_tasks.pop(guild.id, None)
             except Exception:
                 self._scheduled_tasks.pop(guild.id, None)
@@ -140,11 +142,11 @@ class BumpReminder(commands.Cog):
         if channel_id and role_id:
             # cancel existing
             existing = self._scheduled_tasks.get(message.guild.id)
-            if existing and not existing.done():
-                existing.cancel()
+            if existing and not existing[0].done():
+                existing[0].cancel()
                 self.logger.debug("Cancelled existing reminder task for guild %s", message.guild.id)
             task = asyncio.create_task(self._reminder_task(message.guild, channel_id, role_id, delay=7200, scheduled_at=scheduled_at))
-            self._scheduled_tasks[message.guild.id] = task
+            self._scheduled_tasks[message.guild.id] = (task, scheduled_at, 7200)
         else:
             self.logger.debug("Reminder not scheduled: channel_id or role_id not configured for guild %s", message.guild.id)
 
@@ -263,16 +265,28 @@ class BumpReminder(commands.Cog):
         await guild_conf.last_bump.set(scheduled_at)
 
         existing = self._scheduled_tasks.get(ctx.guild.id)
-        if existing and not existing.done():
-            existing.cancel()
-            self.logger.debug("Cancelled existing reminder task for guild %s (bumptest)", ctx.guild.id)
+        if existing and not existing[0].done():
+            # test already scheduled -> inform and refuse to schedule another
+            scheduled_at_existing = existing[1]
+            delay_existing = existing[2]
+            next_allowed_ts_existing = scheduled_at_existing + delay_existing
+            next_allowed_dt_existing = datetime.datetime.utcfromtimestamp(next_allowed_ts_existing)
+            remaining_existing = max(0, int((next_allowed_dt_existing - datetime.datetime.utcnow()).total_seconds()))
+            hrs_e, rem_e = divmod(remaining_existing, 3600)
+            mins_e, secs_e = divmod(rem_e, 60)
+            remaining_str_existing = f"{hrs_e}h {mins_e}m {secs_e}s"
+            await ctx.send(
+                f"⚠️ Er staat al een test/reminder gepland. Volgende bump mogelijk op (UTC): {next_allowed_dt_existing.isoformat()} — over {remaining_str_existing}.\n"
+                "Wacht tot die afloopt of annuleer de geplande reminder eerst."
+            )
+            return
 
         # schedule with provided delay
         channel_id = data.get("channel_id")
         role_id = data.get("role_id")
         if channel_id and role_id:
             task = asyncio.create_task(self._reminder_task(ctx.guild, channel_id, role_id, delay=delay, scheduled_at=scheduled_at))
-            self._scheduled_tasks[ctx.guild.id] = task
+            self._scheduled_tasks[ctx.guild.id] = (task, scheduled_at, delay)
 
         # send immediate confirmation and next-bump-time info
         next_allowed_ts = scheduled_at + delay
