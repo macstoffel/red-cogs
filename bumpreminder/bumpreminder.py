@@ -23,23 +23,41 @@ class BumpReminder(commands.Cog):
         self.logger = logging.getLogger("red.bumpreminder")
         # bekende bump-bot ids, voeg meer toe indien nodig
         self.BUMP_BOT_IDS = {302050872383242240}  # Disboard default id
+        # houd per-guild geplande reminder tasks zodat we ze kunnen annuleren
+        self._scheduled_tasks: dict[int, asyncio.Task] = {}
 
-    async def _reminder_task(self, guild: discord.Guild, channel_id: int, role_id: int, delay: int = 7200):
-        """Background task: wacht delay seconden en stuur reminder."""
+    async def _reminder_task(self, guild: discord.Guild, channel_id: int, role_id: int, delay: int = 7200, scheduled_at: float = None):
+        """Background task: wacht delay seconden en stuur reminder.
+        Controleert voor het verzenden of last_bump nog gelijk is aan scheduled_at.
+        """
         self.logger.debug("Reminder task started for guild %s, channel %s, role %s, delay=%s", guild.id, channel_id, role_id, delay)
-        await asyncio.sleep(delay)
-        channel = guild.get_channel(channel_id) if channel_id else None
-        role = guild.get_role(role_id) if role_id else None
-        if channel and role:
+        try:
+            await asyncio.sleep(delay)
+            # check of er niet intussen een nieuwe bump is geweest
+            guild_conf = self.config.guild(guild)
+            current_last = await guild_conf.last_bump()
+            if scheduled_at is not None and current_last != scheduled_at:
+                self.logger.info("Reminder aborted for guild %s: new bump occurred after scheduling (scheduled_at=%s current_last=%s)", guild.id, scheduled_at, current_last)
+                return
+            channel = guild.get_channel(channel_id) if channel_id else None
+            role = guild.get_role(role_id) if role_id else None
+            if channel and role:
+                try:
+                    await channel.send(f"{role.mention} Tijd om weer te bumpen! 🚀")
+                    self.logger.info("Sent bump reminder in guild %s channel %s", guild.id, channel_id)
+                except discord.Forbidden:
+                    self.logger.warning("Missing permission to send reminder in guild %s channel %s", guild.id, channel_id)
+                except Exception as e:
+                    self.logger.exception("Failed to send reminder: %s", e)
+            else:
+                self.logger.debug("Reminder aborted: channel or role missing (channel=%s role=%s)", channel, role)
+        finally:
+            # opruimen van taak-registratie
             try:
-                await channel.send(f"{role.mention} Tijd om weer te bumpen! 🚀")
-                self.logger.info("Sent bump reminder in guild %s channel %s", guild.id, channel_id)
-            except discord.Forbidden:
-                self.logger.warning("Missing permission to send reminder in guild %s channel %s", guild.id, channel_id)
-            except Exception as e:
-                self.logger.exception("Failed to send reminder: %s", e)
-        else:
-            self.logger.debug("Reminder aborted: channel or role missing (channel=%s role=%s)", channel, role)
+                if self._scheduled_tasks.get(guild.id) is asyncio.current_task():
+                    self._scheduled_tasks.pop(guild.id, None)
+            except Exception:
+                self._scheduled_tasks.pop(guild.id, None)
 
     # ------------------------
     # Activiteit tracken
@@ -88,7 +106,8 @@ class BumpReminder(commands.Cog):
 
         # save timestamp
         guild_conf = self.config.guild(message.guild)
-        await guild_conf.last_bump.set(datetime.datetime.utcnow().timestamp())
+        scheduled_at = datetime.datetime.utcnow().timestamp()
+        await guild_conf.last_bump.set(scheduled_at)
 
         # stuur onmiddelijke "thank you" als ingeschakeld
         data = await guild_conf.all()
@@ -115,12 +134,17 @@ class BumpReminder(commands.Cog):
             except Exception as e:
                 self.logger.exception("Failed sending thank-you: %s", e)
 
-        # start background reminder (non-blocking)
+        # start background reminder (non-blocking) — annuleer vorige als die nog loopt
         channel_id = data.get("channel_id")
         role_id = data.get("role_id")
         if channel_id and role_id:
-            # default delay 2h (7200s)
-            asyncio.create_task(self._reminder_task(message.guild, channel_id, role_id))
+            # cancel existing
+            existing = self._scheduled_tasks.get(message.guild.id)
+            if existing and not existing.done():
+                existing.cancel()
+                self.logger.debug("Cancelled existing reminder task for guild %s", message.guild.id)
+            task = asyncio.create_task(self._reminder_task(message.guild, channel_id, role_id, delay=7200, scheduled_at=scheduled_at))
+            self._scheduled_tasks[message.guild.id] = task
         else:
             self.logger.debug("Reminder not scheduled: channel_id or role_id not configured for guild %s", message.guild.id)
 
@@ -224,8 +248,9 @@ class BumpReminder(commands.Cog):
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
     async def bumptest(self, ctx, delay: int = 10):
-        """Test de thank-you + reminder flow. delay = seconden voordat reminder gestuurd wordt (default 10s)."""
-        # Simuleer bump: stuur thank-you en schedule reminder with provided delay
+        """Test de thank-you + reminder flow. delay = seconden voordat reminder gestuurd wordt (default 10s).
+        Geeft ook aan wanneer er weer gebumpt kan worden (next bump time).
+        """
         guild_conf = self.config.guild(ctx.guild)
         data = await guild_conf.all()
         thank_enabled = data.get("thank_enabled", True)
@@ -233,30 +258,37 @@ class BumpReminder(commands.Cog):
         thank_message = data.get("thank_message", "Thanks for bumping the server, {user}!")
         thank_channel = ctx.guild.get_channel(thank_channel_id) if thank_channel_id else ctx.channel
 
-        # update last_bump
-        await guild_conf.last_bump.set(datetime.datetime.utcnow().timestamp())
-        await ctx.send("✅ Simulated bump recorded; sending thank-you now and scheduling reminder.")
+        # update last_bump and schedule reminder; cancel previous
+        scheduled_at = datetime.datetime.utcnow().timestamp()
+        await guild_conf.last_bump.set(scheduled_at)
 
-        if thank_enabled and thank_channel:
-            try:
-                embed = discord.Embed(
-                    title="(Test) Dankjewel voor het bumpen! 🎉",
-                    description=thank_message.format(user=ctx.author.mention),
-                    color=discord.Color.green(),
-                    timestamp=datetime.datetime.utcnow(),
-                )
-                await thank_channel.send(embed=embed)
-            except discord.Forbidden:
-                await ctx.send("⚠️ Geen permissie om thank-you te sturen in het ingestelde kanaal.")
+        existing = self._scheduled_tasks.get(ctx.guild.id)
+        if existing and not existing.done():
+            existing.cancel()
+            self.logger.debug("Cancelled existing reminder task for guild %s (bumptest)", ctx.guild.id)
 
+        # schedule with provided delay
         channel_id = data.get("channel_id")
         role_id = data.get("role_id")
         if channel_id and role_id:
-            asyncio.create_task(self._reminder_task(ctx.guild, channel_id, role_id, delay=delay))
-            await ctx.send(f"✅ Reminder scheduled in {delay} seconds.")
-        else:
-            await ctx.send("⚠️ Reminder niet gepland: channel of role niet ingesteld.")
+            task = asyncio.create_task(self._reminder_task(ctx.guild, channel_id, role_id, delay=delay, scheduled_at=scheduled_at))
+            self._scheduled_tasks[ctx.guild.id] = task
 
+        # send immediate confirmation and next-bump-time info
+        next_allowed_ts = scheduled_at + delay
+        next_allowed_dt = datetime.datetime.utcfromtimestamp(next_allowed_ts)
+        # human readable remaining time
+        remaining = next_allowed_dt - datetime.datetime.utcnow()
+        # clamp
+        remaining_seconds = max(0, int(remaining.total_seconds()))
+        hrs, rem = divmod(remaining_seconds, 3600)
+        mins, secs = divmod(rem, 60)
+        remaining_str = f"{hrs}h {mins}m {secs}s"
+
+        await ctx.send(
+            f"✅ Simulated bump recorded; thank-you sent and reminder scheduled in {delay} seconds.\n"
+            f"Volgende bump mogelijk op (UTC): {next_allowed_dt.isoformat()} — over {remaining_str}."
+        )
 # module setup
 async def setup(bot):
     await bot.add_cog(BumpReminder(bot))
