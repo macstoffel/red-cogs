@@ -4,19 +4,6 @@ import asyncio
 import datetime
 import logging
 
-class GetBumpView(discord.ui.View):
-    def __init__(self, bump_command: str = "/bump"):
-        super().__init__(timeout=None)
-        self.bump_command = bump_command
-
-    @discord.ui.button(label="Get /bump", style=discord.ButtonStyle.primary, custom_id="bumpreminder:get_bump")
-    async def get_bump(self, button: discord.ui.Button, interaction: discord.Interaction):
-        # Send ephemeral helper so user can copy the command
-        await interaction.response.send_message(
-            f"Gebruik het volgende commando om te bumpen in deze server:\n`{self.bump_command}`\n\nPlak het in de serverchat of gebruik de slash-command interface.",
-            ephemeral=True,
-        )
-
 class BumpReminder(commands.Cog):
     """Stuur automatisch een bump reminder 2 uur na een succesvolle Disboard bump. """
 
@@ -57,8 +44,8 @@ class BumpReminder(commands.Cog):
             role = guild.get_role(role_id) if role_id else None
             if channel and role:
                 try:
-                    reminder_text = f"{role.mention} Tijd om weer te bumpen! 🚀 Gebruik `/bump`"
-                    await channel.send(reminder_text, view=GetBumpView("/bump"))
+                    reminder_text = f"{role.mention} Tijd om weer te bumpen! 🚀 Gebruik `/bump` in het tekstveld om te bumpen."
+                    await channel.send(reminder_text)
                     self.logger.info("Sent bump reminder in guild %s channel %s", guild.id, channel_id)
                 except discord.Forbidden:
                     self.logger.warning("Missing permission to send reminder in guild %s channel %s", guild.id, channel_id)
@@ -150,13 +137,12 @@ class BumpReminder(commands.Cog):
             try:
                 embed = discord.Embed(
                     title="Dankjewel voor het bumpen! 🎉",
-                    description=thank_message.format(user=message.author.mention),
+                    description=thank_message.format(user=message.author.mention) + "\n\nGebruik `/bump` in het tekstveld om direct te bumpen.",
                     color=discord.Color.green(),
                     timestamp=datetime.datetime.utcnow(),
                 )
                 embed.set_footer(text=f"{message.guild.name} • Bumped")
-                # include helper button so users can easily get the /bump instruction
-                await thank_channel.send(embed=embed, view=GetBumpView("/bump"))
+                await thank_channel.send(embed=embed)
                 self.logger.info("Sent thank-you embed in guild %s channel %s", message.guild.id, thank_channel.id)
             except discord.Forbidden:
                 self.logger.warning("Missing permission to send thank-you in guild %s channel %s", message.guild.id, thank_channel.id)
@@ -248,7 +234,7 @@ class BumpReminder(commands.Cog):
         current = await guild_conf.thank_enabled()
         await guild_conf.thank_enabled.set(not current)
         await ctx.send(f"✅ Thank-you berichten {'ingeschakeld' if not current else 'uitgeschakeld'}.")
-        
+
     # --- Test / debug commands ---
 
     @commands.guild_only()
@@ -326,11 +312,11 @@ class BumpReminder(commands.Cog):
         mins, secs = divmod(rem, 60)
         remaining_str = f"{hrs}h {mins}m {secs}s"
 
-        # include helper button with /bump instruction
+        # include instruction with /bump
         await ctx.send(
             f"✅ Simulated bump recorded; thank-you sent and reminder scheduled in {delay} seconds.\n"
-            f"Volgende bump mogelijk op (UTC): {next_allowed_dt.isoformat()} — over {remaining_str}.",
-            view=GetBumpView("/bump"),
+            f"Volgende bump mogelijk op (UTC): {next_allowed_dt.isoformat()} — over {remaining_str}.\n\n"
+            "Gebruik `/bump` in het tekstveld om te bumpen."
         )
 
 # module setup
