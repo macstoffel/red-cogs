@@ -302,7 +302,8 @@ class BumpReminder(commands.Cog):
             self._scheduled_tasks[ctx.guild.id] = (task, scheduled_at, delay)
 
         # send immediate confirmation and next-bump-time info
-        next_allowed_ts = scheduled_at + delay
+        # NOTE: show next bump time 1 hour later than the reminder time
+        next_allowed_ts = scheduled_at + delay + 3600
         next_allowed_dt = datetime.datetime.utcfromtimestamp(next_allowed_ts)
         # human readable remaining time
         remaining = next_allowed_dt - datetime.datetime.utcnow()
