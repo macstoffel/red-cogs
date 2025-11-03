@@ -135,19 +135,9 @@ class BumpReminder(commands.Cog):
 
         if thank_enabled and thank_channel:
             try:
-                # bereken volgende bumptijd (+1 uur vanaf scheduled_at)
-                next_time = datetime.datetime.utcfromtimestamp(scheduled_at) + datetime.timedelta(hours=1)
-                remaining = next_time - datetime.datetime.utcnow()
-                remaining_seconds = max(0, int(remaining.total_seconds()))
-                hrs, rem = divmod(remaining_seconds, 3600)
-                mins, secs = divmod(rem, 60)
-                remaining_str = f"{hrs}h {mins}m {secs}s"
                 embed = discord.Embed(
                     title="Dankjewel voor het bumpen! 🎉",
-                    description=(
-                        thank_message.format(user=message.author.mention)
-                        + f"\n\nVolgende bump mogelijk op (UTC): {next_time.isoformat()} — over {remaining_str}."
-                    ),
+                    description=thank_message.format(user=message.author.mention) + "\n\nOver twee uurtjes kun je weer opnieuw bumpen.",
                     color=discord.Color.green(),
                     timestamp=datetime.datetime.utcnow(),
                 )
