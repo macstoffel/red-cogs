@@ -192,6 +192,12 @@ class AlphabetKink(commands.Cog):
         if message.author.bot:
             return
 
+        # If this message is a command, let the bot process it and don't treat it as a game move.
+        ctx = await self.bot.get_context(message)
+        if ctx.command is not None:
+            await self.bot.process_commands(message)
+            return
+
         game_channel = await self.config.game_channel()
         if not game_channel or message.channel.id != game_channel:
             return
