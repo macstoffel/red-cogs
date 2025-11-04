@@ -1,0 +1,23 @@
+{
+    "author": [
+        "YourName"
+    ],
+    "install_msg": "Bedankt! Gebruik $kinkalfabet om het spel te starten.",
+    "name": "AlphabetKink",
+    "short": "Kinky alfabet spel",
+    "description": "Een kinky A-Z alfabet spel voor Red-DiscordBot",
+    "tags": [
+        "fun",
+        "games",
+        "kink",
+        "nsfw"
+    ],
+    "hidden": false,
+    "min_bot_version": "3.5.0",
+    "min_python_version": [
+        3,
+        8,
+        0
+    ],
+    "type": "COG"
+}
