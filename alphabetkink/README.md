@@ -17,10 +17,15 @@ A → Z, fout woord = reset, bij Z → feestje!
 ## ✅ Installatie via GitHub
 
 1. Voeg repository toe aan Red:
+
 [p]repo add MacStoffel https://github.com/MacStoffel/redcogs
 
-2. Installeer en laad de cog:
+2. Installeer de cog:
+
 [p]cog install MacStoffel alphabetkink
+
+3. Laad de cog:
+
 [p]load alphabetkink
 
 
