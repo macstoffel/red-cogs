@@ -8,7 +8,7 @@ from typing import Optional
 
 
 class AlphabetKink(commands.Cog):
-    """Kinky alfabet spel voor Discord – A t/m Z met fetish/BDSM woorden"""
+    """Kinky alfabet spel – A t/m Z met fetish/BDSM woorden + scores + JSON support"""
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -54,13 +54,18 @@ class AlphabetKink(commands.Cog):
             "Z": ["zipper", "zelfbinding"],
         }
 
-        # pad voor json
+        # JSON in cog data map
         self.words_file = cog_data_path(self) / "kink_words.json"
 
-        # als er al een json opgeslagen is → laad die
+        # --- ✅ Belangrijk toegevoegd ---
+        # Als JSON bestaat → laad hem
+        # Als JSON NIET bestaat → schrijf standaard-woordenlijst naar JSON
         if os.path.exists(self.words_file):
             with open(self.words_file, "r", encoding="utf-8") as f:
                 self.allowed_words = json.load(f)
+        else:
+            with open(self.words_file, "w", encoding="utf-8") as f:
+                json.dump(self.allowed_words, f, indent=4, ensure_ascii=False)
 
     async def game_embed(self, title, desc, color=discord.Color.purple()):
         return discord.Embed(title=title, description=desc, color=color)
@@ -155,7 +160,7 @@ class AlphabetKink(commands.Cog):
         if not isinstance(new_list, dict):
             return await ctx.send("❌ JSON moet een dict zijn: { 'A': ['anal', ...], ... }")
 
-        # opslaan
+        # ✅ sla op & vervang de woordenlijst
         with open(self.words_file, "w", encoding="utf-8") as f:
             json.dump(new_list, f, indent=4, ensure_ascii=False)
 
@@ -169,16 +174,16 @@ class AlphabetKink(commands.Cog):
 
     @commands.command()
     async def kinkhelp(self, ctx):
-        """Overzicht van kinky alfabet commands."""
+        """Overzicht met commands."""
         embed = await self.game_embed(
             "📌 Kink Alfabet Help",
             (
                 "**$kinkalfabet** – Start/reset het spel\n"
-                "**$kinksetchannel #kanaal** – Stel speelkanaal in\n"
+                "**$kinksetchannel #kanaal** – Speelkanaal instellen\n"
                 "**$kinkscore** – Bekijk je score\n"
                 "**$kinktop** – Top 10 spelers\n"
                 "**$kinkexport** – Exporteer woordenlijst\n"
-                "**$kinkimport** – Importeer woordenlijst\n"
+                **"$kinkimport** – Importeer woordenlijst"
             )
         )
         await ctx.send(embed=embed)
@@ -192,7 +197,6 @@ class AlphabetKink(commands.Cog):
         if message.author.bot:
             return
 
-        # If this message is a command, let the bot process it and don't treat it as a game move.
         ctx = await self.bot.get_context(message)
         if ctx.command is not None:
             await self.bot.process_commands(message)
@@ -200,10 +204,6 @@ class AlphabetKink(commands.Cog):
 
         game_channel = await self.config.game_channel()
         if not game_channel or message.channel.id != game_channel:
-            return
-
-        prefix = tuple(await self.bot.get_prefix(message))
-        if message.content.startswith(prefix):
             return
 
         word = message.content.lower().strip()
@@ -219,7 +219,7 @@ class AlphabetKink(commands.Cog):
         if str(message.author.id) == str(last_player):
             embed = await self.game_embed(
                 "❌ Je bent net geweest!",
-                "Geef andere spelers ook een beurt."
+                "Geef andere spelers een beurt."
             )
             return await message.channel.send(embed=embed)
 
@@ -234,12 +234,12 @@ class AlphabetKink(commands.Cog):
             )
             return await message.channel.send(embed=embed)
 
-        # ✅ correct woord
+        # ✅ correct
         next_letter = "A" if current_letter == "Z" else chr(ord(current_letter) + 1)
         await self.config.current_letter.set(next_letter)
         await self.config.last_player.set(message.author.id)
 
-        # score opslaan
+        # score
         scores = await self.config.scores()
         user_id = str(message.author.id)
         scores[user_id] = scores.get(user_id, 0) + 1
@@ -260,8 +260,4 @@ class AlphabetKink(commands.Cog):
 
 
 async def setup(bot: Red):
-    """Red loads package or module; avoid adding the cog twice."""
-    # Prevent double registration if already loaded by package/__init__.py or another loader
-    if bot.get_cog("AlphabetKink") is not None:
-        return
     await bot.add_cog(AlphabetKink(bot))
