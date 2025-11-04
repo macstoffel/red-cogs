@@ -1,54 +1,78 @@
-# AlphabetKink
+# 🔥 AlphabetKink – Red DiscordBot Cog
 
-Een kinky alfabet spel voor Red-DiscordBot.  
-Spelers vullen BDSM / kinky woorden in die beginnen met de juiste letter.  
-A → Z, fout woord = reset, bij Z → feestje!
+![discord](https://img.shields.io/badge/Discord-7289DA?logo=discord&logoColor=white)
+![python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![redbot](https://img.shields.io/badge/Red--DiscordBot-cog-purple)
+![status](https://img.shields.io/badge/Status-Stable-success)
 
-## ✅ Functies
-- Woord moet beginnen met de juiste letter
-- Punten per juist woord
-- Top 10 scoreboard
-- Standaard woordenlijst + JSON import/export
-- Kanaal instelbaar
-- Embed berichten
+Een **kinky alfabet spel** voor Red-DiscordBot.
+Spelers typen BDSM / fetish / kinky woorden die beginnen met de juiste letter.
+Begint bij **A**, eindigt bij **Z**. Fout woord? → Reset.
+Z gehaald? → Feest & nieuw spel.
 
----
+✅ Scores per speler
+✅ Top 10 scorebord
+✅ Standaard woordenlijst + JSON import/export
+✅ Embed-style reacties
+✅ Kanaal instelbaar
+✅ Speler mag niet 2x achter elkaar
 
-## ✅ Installatie via GitHub
+## ✅ Installatie
 
-1. Voeg repository toe aan Red:
-
-[p]repo add MacStoffel https://github.com/MacStoffel/redcogs
-
-2. Installeer de cog:
-
-[p]cog install MacStoffel alphabetkink
-
-3. Laad de cog:
-
+```
+[p]repo add alphabetkink https://github.com/<jouw-gebruikersnaam>/<repo>.git
+[p]cog install alphabetkink alphabetkink
 [p]load alphabetkink
-
-
----
+```
 
 ## ✅ Commands
 
-| Command | Functie |
+| Command | Uitleg |
 |---------|--------|
-| `[p]kinkalfabet` | Start/reset spel |
-| `[p]kinksetchannel #kanaal` | Speelkanaal instellen |
-| `[p]kinkscore` | Bekijk je punten |
-| `[p]kinktop` | Top 10 spelers |
-| `[p]kinkexport` | Exporteer woordenlijst naar JSON |
-| `[p]kinkimport` | Importeer nieuwe woordenlijst |
+| **[p]kinkalfabet** | Start/reset spel |
+| **[p]kinksetchannel #kanaal** | Speelkanaal instellen |
+| **[p]kinkscore** | Bekijk je score |
+| **[p]kinktop** | Top 10 spelers |
+| **[p]kinkexport** | Exporteer woordenlijst |
+| **[p]kinkimport** | Importeer woordenlijst |
 
----
+## ✅ Woordenlijst
 
-## ✅ Woordenlijst import/export
+- Bij eerste run wordt automatisch `kink_words.json` aangemaakt
+- `$kinkexport` → download woordenlijst
+- Upload `kink_words.json` + `$kinkimport` → nieuwe lijst
 
-- **Export**: `[p]kinkexport` → bot stuurt `kink_words.json`
-- **Import**: Upload `kink_words.json` en typ `[p]kinkimport`
+## ✅ Voorbeeld
 
-Voorbeeldbestand zit in deze repo.
+```json
+{
+  "A": ["aftercare", "anal"],
+  "B": ["bondage", "ballgag", "buttplug"],
+  "C": ["chastity", "collar", "consent"],
+  "D": ["dom", "discipline", "dominant"],
+  "E": ["edgeplay", "electroplay"],
+  "F": ["fetish", "fixatie", "flogger"],
+  "G": ["gag", "gimp"],
+  "H": ["harnas", "handcuffs"],
+  "I": ["impactplay"],
+  "J": ["jute"],
+  "K": ["kinky", "kettingen"],
+  "L": ["latex", "leather"],
+  "M": ["masochist", "master", "mascara-running"],
+  "N": ["needleplay", "nippleclamps"],
+  "O": ["opper", "o-ring"],
+  "P": ["paddle", "petplay"],
+  "Q": ["queening"],
+  "R": ["ropes", "rigger"],
+  "S": ["sub", "sadist", "spreaderbar"],
+  "T": ["teasing", "tapeplay"],
+  "U": ["uniformplay"],
+  "V": ["vettex", "vibrator"],
+  "W": ["whip", "waxplay"],
+  "X": ["x-frame"],
+  "Y": ["yoke"],
+  "Z": ["zipper", "zelfbinding"]
+}
+```
 
 Veel plezier!
