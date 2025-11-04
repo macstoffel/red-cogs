@@ -8,7 +8,7 @@ from typing import Optional
 
 
 class AlphabetKink(commands.Cog):
-    """Kinky alfabet spel – A t/m Z met fetish/BDSM woorden + scores + JSON support"""
+    """Kinky alfabet spel voor Discord – A t/m Z met fetish/BDSM woorden"""
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -54,18 +54,13 @@ class AlphabetKink(commands.Cog):
             "Z": ["zipper", "zelfbinding"],
         }
 
-        # JSON in cog data map
+        # pad voor json
         self.words_file = cog_data_path(self) / "kink_words.json"
 
-        # --- ✅ Belangrijk toegevoegd ---
-        # Als JSON bestaat → laad hem
-        # Als JSON NIET bestaat → schrijf standaard-woordenlijst naar JSON
+        # als er al een json opgeslagen is → laad die
         if os.path.exists(self.words_file):
             with open(self.words_file, "r", encoding="utf-8") as f:
                 self.allowed_words = json.load(f)
-        else:
-            with open(self.words_file, "w", encoding="utf-8") as f:
-                json.dump(self.allowed_words, f, indent=4, ensure_ascii=False)
 
     async def game_embed(self, title, desc, color=discord.Color.purple()):
         return discord.Embed(title=title, description=desc, color=color)
@@ -160,7 +155,7 @@ class AlphabetKink(commands.Cog):
         if not isinstance(new_list, dict):
             return await ctx.send("❌ JSON moet een dict zijn: { 'A': ['anal', ...], ... }")
 
-        # ✅ sla op & vervang de woordenlijst
+        # opslaan
         with open(self.words_file, "w", encoding="utf-8") as f:
             json.dump(new_list, f, indent=4, ensure_ascii=False)
 
@@ -174,16 +169,16 @@ class AlphabetKink(commands.Cog):
 
     @commands.command()
     async def kinkhelp(self, ctx):
-        """Overzicht met commands."""
+        """Overzicht van kinky alfabet commands."""
         embed = await self.game_embed(
             "📌 Kink Alfabet Help",
             (
                 "**$kinkalfabet** – Start/reset het spel\n"
-                "**$kinksetchannel #kanaal** – Speelkanaal instellen\n"
+                "**$kinksetchannel #kanaal** – Stel speelkanaal in\n"
                 "**$kinkscore** – Bekijk je score\n"
                 "**$kinktop** – Top 10 spelers\n"
                 "**$kinkexport** – Exporteer woordenlijst\n"
-                **"$kinkimport** – Importeer woordenlijst"
+                "**$kinkimport** – Importeer woordenlijst\n"
             )
         )
         await ctx.send(embed=embed)
@@ -197,13 +192,12 @@ class AlphabetKink(commands.Cog):
         if message.author.bot:
             return
 
-        ctx = await self.bot.get_context(message)
-        if ctx.command is not None:
-            await self.bot.process_commands(message)
-            return
-
         game_channel = await self.config.game_channel()
         if not game_channel or message.channel.id != game_channel:
+            return
+
+        prefix = tuple(await self.bot.get_prefix(message))
+        if message.content.startswith(prefix):
             return
 
         word = message.content.lower().strip()
@@ -219,7 +213,7 @@ class AlphabetKink(commands.Cog):
         if str(message.author.id) == str(last_player):
             embed = await self.game_embed(
                 "❌ Je bent net geweest!",
-                "Geef andere spelers een beurt."
+                "Geef andere spelers ook een beurt."
             )
             return await message.channel.send(embed=embed)
 
@@ -234,12 +228,12 @@ class AlphabetKink(commands.Cog):
             )
             return await message.channel.send(embed=embed)
 
-        # ✅ correct
+        # ✅ correct woord
         next_letter = "A" if current_letter == "Z" else chr(ord(current_letter) + 1)
         await self.config.current_letter.set(next_letter)
         await self.config.last_player.set(message.author.id)
 
-        # score
+        # score opslaan
         scores = await self.config.scores()
         user_id = str(message.author.id)
         scores[user_id] = scores.get(user_id, 0) + 1
