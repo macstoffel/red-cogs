@@ -1,8 +1,8 @@
 {
     "author": [
-        "YourName"
+        "MacStoffel"
     ],
-    "install_msg": "Bedankt! Gebruik $kinkalfabet om het spel te starten.",
+    "install_msg": "Bedankt! Gebruik [p]kinkalfabet om het spel te starten.",
     "name": "AlphabetKink",
     "short": "Kinky alfabet spel",
     "description": "Een kinky A-Z alfabet spel voor Red-DiscordBot",

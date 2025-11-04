@@ -1,9 +1,28 @@
 {
-    "A": [
-        "aftercare",
-        "anal"
-    ],
-    "B": [
-        "bondage"
-    ]
+    "A": ["aftercare", "anal"],
+    "B": ["bondage", "ballgag", "buttplug"],
+    "C": ["chastity", "collar", "consent"],
+    "D": ["dom", "discipline", "dominant"],
+    "E": ["edgeplay", "electroplay"],
+    "F": ["fetish", "fixatie", "flogger"],
+    "G": ["gag", "gimp"],
+    "H": ["harnas", "handcuffs"],
+    "I": ["impactplay"],
+    "J": ["jute"],
+    "K": ["kinky", "kettingen"],
+    "L": ["latex", "leather"],
+    "M": ["masochist", "master", "mascara-running"],
+    "N": ["needleplay", "nippleclamps"],
+    "O": ["opper", "o-ring"],
+    "P": ["paddle", "petplay"],
+    "Q": ["queening"],
+    "R": ["ropes", "rigger"],
+    "S": ["sub", "sadist", "spreaderbar"],
+    "T": ["teasing", "tapeplay"],
+    "U": ["uniformplay"],
+    "V": ["vettex", "vibrator"],
+    "W": ["whip", "waxplay"],
+    "X": ["x-frame"],
+    "Y": ["yoke"],
+    "Z": ["zipper", "zelfbinding"]
 }
