@@ -26,7 +26,7 @@ class AlphabetKink(commands.Cog):
 
         # standaard woordenlijst
         self.allowed_words = {
-            "A": ["aftercare", "anal"],
+            "A": ["aftercare", "anal", "angst"],
             "B": ["bondage", "buttplug", "ballgag"],
             "C": ["chastity", "collar", "consent"],
             "D": ["dom", "discipline", "dominant"],
