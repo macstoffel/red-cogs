@@ -260,4 +260,8 @@ class AlphabetKink(commands.Cog):
 
 
 async def setup(bot: Red):
+    """Red loads package or module; avoid adding the cog twice."""
+    # Prevent double registration if already loaded by package/__init__.py or another loader
+    if bot.get_cog("AlphabetKink") is not None:
+        return
     await bot.add_cog(AlphabetKink(bot))
