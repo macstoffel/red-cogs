@@ -20,8 +20,8 @@ Z gehaald? → Feest & nieuw spel.
 ## ✅ Installatie
 
 ```
-[p]repo add alphabetkink https://github.com/<jouw-gebruikersnaam>/<repo>.git
-[p]cog install alphabetkink alphabetkink
+[p]repo add MacStoffel https://github.com/MacStoffel/redcogs.git
+[p]cog install MacStoffel alphabetkink
 [p]load alphabetkink
 ```
 
@@ -29,6 +29,7 @@ Z gehaald? → Feest & nieuw spel.
 
 | Command | Uitleg |
 |---------|--------|
+| **[p]kinkhelp** | Onderstaande help |
 | **[p]kinkalfabet** | Start/reset spel |
 | **[p]kinksetchannel #kanaal** | Speelkanaal instellen |
 | **[p]kinkscore** | Bekijk je score |
