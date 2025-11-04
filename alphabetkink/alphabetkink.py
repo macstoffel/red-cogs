@@ -55,17 +55,58 @@ class AlphabetKink(commands.Cog):
         }
 
         # JSON in cog data map
-        self.words_file = cog_data_path(self) / "kink_words.json"
-
-        # --- ✅ Belangrijk toegevoegd ---
-        # Als JSON bestaat → laad hem
-        # Als JSON NIET bestaat → schrijf standaard-woordenlijst naar JSON
-        if os.path.exists(self.words_file):
-            with open(self.words_file, "r", encoding="utf-8") as f:
-                self.allowed_words = json.load(f)
-        else:
-            with open(self.words_file, "w", encoding="utf-8") as f:
-                json.dump(self.allowed_words, f, indent=4, ensure_ascii=False)
+-        self.words_file = cog_data_path(self) / "kink_words.json"
+-
+-        # --- ✅ Belangrijk toegevoegd ---
+-        # Als JSON bestaat → laad hem
+-        # Als JSON NIET bestaat → schrijf standaard-woordenlijst naar JSON
+-        if os.path.exists(self.words_file):
+-            with open(self.words_file, "r", encoding="utf-8") as f:
+-                self.allowed_words = json.load(f)
+-        else:
+-            with open(self.words_file, "w", encoding="utf-8") as f:
+-                json.dump(self.allowed_words, f, indent=4, ensure_ascii=False)
++        data_path = cog_data_path(self) / "kink_words.json"
++        pkg_path = os.path.join(os.path.dirname(__file__), "kink_words.json")
++        self.words_file = data_path  # primary writable location
++
++        # Probeer eerst cog-data map, anders fallback naar pakketmap (same folder).
++        # Kopieer fallback naar data_path zodat future writes werken.
++        try:
++            if os.path.exists(data_path):
++                path_to_load = data_path
++            elif os.path.exists(pkg_path):
++                path_to_load = pkg_path
++                os.makedirs(os.path.dirname(str(data_path)), exist_ok=True)
++                # copy package file to data path for persistence
++                with open(pkg_path, "r", encoding="utf-8") as src, open(data_path, "w", encoding="utf-8") as dst:
++                    dst.write(src.read())
++            else:
++                # Geen bestand gevonden -> schrijf defaults naar data_path
++                os.makedirs(os.path.dirname(str(data_path)), exist_ok=True)
++                with open(data_path, "w", encoding="utf-8") as f:
++                    json.dump(self.allowed_words, f, indent=4, ensure_ascii=False)
++                path_to_load = data_path
++
++            # Laad en normaliseer: keys uppercase, woorden lowercase
++            with open(path_to_load, "r", encoding="utf-8") as f:
++                loaded = json.load(f)
++            normalized = {}
++            if isinstance(loaded, dict):
++                for k, v in loaded.items():
++                    if not isinstance(k, str):
++                        continue
++                    key = k.upper()
++                    if isinstance(v, list):
++                        normalized[key] = [str(item).lower() for item in v]
++                    elif isinstance(v, str):
++                        normalized[key] = [w.strip().lower() for w in v.split(",") if w.strip()]
++                    else:
++                        normalized[key] = []
++                self.allowed_words = normalized
++        except Exception as e:
++            # fallback: laat default staan en log waarschuwing naar stdout
++            print(f"Warning loading kink_words.json: {e}")
 
     async def game_embed(self, title, desc, color=discord.Color.purple()):
         return discord.Embed(title=title, description=desc, color=color)
