@@ -26,33 +26,138 @@ class AlphabetKink(commands.Cog):
 
         # standaard woordenlijst
         self.allowed_words = {
-            "A": ["aftercare", "anal"],
-            "B": ["bondage", "buttplug", "ballgag"],
-            "C": ["chastity", "collar", "consent"],
-            "D": ["dom", "discipline", "dominant"],
-            "E": ["edgeplay", "electroplay"],
-            "F": ["fetish", "fixatie", "flogger"],
-            "G": ["gag", "gimp"],
-            "H": ["harnas", "handcuffs"],
-            "I": ["impactplay"],
-            "J": ["jute"],
-            "K": ["kinky", "kettingen"],
-            "L": ["latex", "leather"],
-            "M": ["masochist", "master", "mascara-running"],
-            "N": ["needleplay", "nippleclamps"],
-            "O": ["opper", "o-ring"],
-            "P": ["paddle", "petplay"],
-            "Q": ["queening"],
-            "R": ["ropes", "rigger"],
-            "S": ["sub", "sadist", "spreaderbar"],
-            "T": ["teasing", "tapeplay"],
-            "U": ["uniformplay"],
-            "V": ["vettex", "vibrator"],
-            "W": ["whip", "waxplay"],
-            "X": ["x-frame"],
-            "Y": ["yoke"],
-            "Z": ["zipper", "zelfbinding"],
-        }
+  "A": [
+    "aftercare", "anal", "anaalplug", "anaaltrainers", "anaalkraal", "anaalketting",
+    "afstraffing", "afknellen", "aambeeltring", "armpunten", "armbinder",
+    "anatomicale fixatie", "ageplay", "animalplay", "abdomen-binding"
+  ],
+  "B": [
+    "bondage", "buttplug", "ballgag", "boeien", "blinddoek", "benchwippen",
+    "breathplay", "bitchslap", "bimboficatie", "bollenklem", "borstklem",
+    "bruisballonplay", "brede spreidstang", "bodyharnas", "bondagezak",
+    "bedfixatie", "ballstretcher", "bootworship", "butterfly-gag"
+  ],
+  "C": [
+    "chastity", "collar", "consent", "cockring", "clamps", "caning", "choker",
+    "candleplay", "cupping", "cageplay", "centrale fixatie", "corsettraining",
+    "cross-collar bondage", "chastitybelt", "chainhogtie"
+  ],
+  "D": [
+    "dom", "discipline", "dominant", "dogplay", "dwangbuis", "dildo", "deepthroat",
+    "dasklemmen", "dungeon", "double-penetration-toys", "dovetail bondage",
+    "disciplinestoel", "dwangkoord", "degradatiespel"
+  ],
+  "E": [
+    "edgeplay", "electroplay", "erotiek", "exposure", "enema", "escortspel",
+    "erotic spanking", "electrode cuffs", "electro-zadel", "elbowbinder",
+    "extreme spreiding", "elastische bondage"
+  ],
+  "F": [
+    "fetish", "fixatie", "flogger", "facesitting", "feetplay", "fisting",
+    "fatale onderwerping", "faceharnas", "full-body mummificatie",
+    "forced-orgasm", "forced-chastity", "footworship", "face-mask",
+    "femdom", "forniphilia", "foam-gag", "foulard bondage"
+  ],
+  "G": [
+    "gag", "gimp", "gagbal", "garotteplay", "gehoorzaamheid", "gasmaskerfetish",
+    "gelreiniging (klysma)", "genitale fixatie", "gaiter restraints",
+    "gooning", "g-stringplay", "gimpmask", "gigantische plug"
+  ],
+  "H": [
+    "harnas", "handcuffs", "halsband", "hotwax", "humiliation",
+    "hooggehangen benen", "hoodplay", "hogtie", "handspanking", "houten spreider",
+    "hankleedstoel", "hondenpak (petplay)", "hypnoplay", "hanger bondage"
+  ],
+  "I": [
+    "impactplay", "isoleerzak", "intieme slaaf", "inrijgkorset",
+    "injectiespel (medisch kink)", "iceplay", "interrogationplay",
+    "incontinentiespel (fetish)", "imperial gag", "iron collar"
+  ],
+  "J": [
+    "jute", "jankballetje", "ja-meester-spel", "jurkenfetish", "jacket-restraints",
+    "japanse touwkunst", "jerk-control", "joint-fixatie"
+  ],
+  "K": [
+    "kinky", "kettingen", "kneveling", "kaarsvet", "kontslag", "kruisbank",
+    "kuisheidsgordel", "kattenstaart", "kapfetish", "korsetdiscipline",
+    "kniespreider", "kaakspreider", "kroepstok", "kousenfetish",
+    "kietelmarteling", "kousenbinding"
+  ],
+  "L": [
+    "latex", "leather", "leerfetish", "lingerieplay", "lijmfixatie",
+    "leidsel", "latexmasker", "lijfketting", "linnenband bondage",
+    "lijfobjectificatie", "latexhood", "lederen bitgag"
+  ],
+  "M": [
+    "masochist", "master", "mascara-running", "maskerfetish", "mommy/daddyplay",
+    "martelbank", "mummificatie", "medische kink", "metal bondage",
+    "mouthhook", "monstermaskerbonds", "milking machine", "muiltijdband",
+    "mantra-onderwerping", "metal cuffs", "massage-torture"
+  ],
+  "N": [
+    "needleplay", "nippleclamps", "naaktbediening", "neglectplay", "neuzenring",
+    "naald-torture", "nosing (petplay)", "nachtkraag", "narrow-hogtie"
+  ],
+  "O": [
+    "opper", "o-ring", "overheersing", "onderwerping", "objectificatie",
+    "oralservitude", "overtraining", "oorklemmen", "open-mouth gag",
+    "overground hogtie", "ophijsbondage"
+  ],
+  "P": [
+    "paddle", "petplay", "ponyplay", "pijnbank", "prikkelwiel", "peesfetish",
+    "prostaatmassage", "pincette-clamps", "popharnas", "power-exchange",
+    "puppygag", "positiecontrole", "public-humiliation", "piercingplay"
+  ],
+  "Q": [
+    "queening", "queenstoel", "quick-release cuffs", "quickie-submission",
+    "quad-spreider", "quiet-service (stilte kink)", "quiver-ropes"
+  ],
+  "R": [
+    "ropes", "rigger", "rijzweep", "rattanstok", "roleplay (BDSM)",
+    "ruw touw", "ropecuffs", "ringgag", "ropecorset", "riggingframe",
+    "rode trap (discipline)", "ritssluiting-zipper", "rope-suspension",
+    "rondhalsboei"
+  ],
+  "S": [
+    "sub", "sadist", "spreaderbar", "slavin", "safeword", "shibari", "smplay",
+    "sensorydeprivation", "spanking", "suspension", "strapon", "strap-corset",
+    "suspensionframe", "suctioncups", "strappado", "siliconenboeien",
+    "salivagag", "stilte-orde", "sissyficatie"
+  ],
+  "T": [
+    "teasing", "tapeplay", "tietklemmen", "teugels", "touwbondage",
+    "torture", "tweezers-clamps", "tittraining", "touwkorset",
+    "tongklem", "toiletplay (mild en consensual kink)", "timeout-cage",
+    "thighcuffs", "tens-unit play"
+  ],
+  "U": [
+    "uniformplay", "uitkleden-op-commando", "urinering kink (mild consensual)",
+    "uitbuiting-roleplay", "upperbody bondage", "underarm-binder",
+    "unicorn-mask fetish", "unbreekbare discipline"
+  ],
+  "V": [
+    "vettex", "vibrator", "vaginapomp", "voetenfetish", "voorover binden",
+    "vuistklemmen", "vals-masker", "verhorenplay", "vleespak (latex)",
+    "verplichte knielhouding", "voice-control", "vinegar-sting-wax"
+  ],
+  "W": [
+    "whip", "waxplay", "wandelstok", "wartenbergwiel", "werkhond-spel",
+    "wheel-of-pain", "wrists-to-ankles tie", "wipstoel", "wicked-rope",
+    "waacking gag", "wrap-mummificatie"
+  ],
+  "X": [
+    "x-frame", "xtreme-bondage", "x-positie", "x-cuffs", "x-harnas",
+    "x-tied spreiding", "x-bench"
+  ],
+  "Y": [
+    "yoke", "y-cuff", "y-vormige touwhouding", "y-positie hogtie",
+    "yanker-clamps", "yarn-rope bondage"
+  ],
+  "Z": [
+    "zipper", "zelfbinding", "zweep", "zwabberklemmen", "zenuwspel (electro)",
+    "zwaar touwkorset", "zadelplay", "zwelplug", "zijden touw bondage"
+  ]
+}
 
         # JSON in cog data map
         self.words_file = cog_data_path(self) / "kink_words.json"
