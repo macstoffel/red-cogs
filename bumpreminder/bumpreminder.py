@@ -4,6 +4,19 @@ import asyncio
 import datetime
 import logging
 
+class GetBumpView(discord.ui.View):
+    """View met een knop die de gebruiker een ephemeral kopie van /bump geeft."""
+    def __init__(self, bump_command: str = "/bump"):
+        super().__init__(timeout=None)
+        self.bump_command = bump_command
+
+    @discord.ui.button(label="Kopieer /bump", style=discord.ButtonStyle.primary, custom_id="bumpreminder:copy_bump")
+    async def copy_bump(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            f"Plak dit in het tekstveld om te bumpen:\n`{self.bump_command}`",
+            ephemeral=True,
+        )
+
 class BumpReminder(commands.Cog):
     """Stuur automatisch een bump reminder 2 uur na een succesvolle Disboard bump. """
 
@@ -45,7 +58,8 @@ class BumpReminder(commands.Cog):
             if channel and role:
                 try:
                     reminder_text = f"{role.mention} Tijd om weer te bumpen! 🚀 Gebruik `/bump` in het tekstveld om te bumpen."
-                    await channel.send(reminder_text)
+                    # knop alleen in de reminder
+                    await channel.send(reminder_text, view=GetBumpView("/bump"))
                     self.logger.info("Sent bump reminder in guild %s channel %s", guild.id, channel_id)
                 except discord.Forbidden:
                     self.logger.warning("Missing permission to send reminder in guild %s channel %s", guild.id, channel_id)
@@ -135,11 +149,13 @@ class BumpReminder(commands.Cog):
 
         if thank_enabled and thank_channel:
             try:
+                # show the embed timestamp 1 hour later
+                embed_time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
                 embed = discord.Embed(
                     title="Dankjewel voor het bumpen! 🎉",
                     description=thank_message.format(user=message.author.mention) + "\n\nOver twee uurtjes kun je weer opnieuw bumpen.",
                     color=discord.Color.green(),
-                    timestamp=datetime.datetime.utcnow(),
+                    timestamp=embed_time,
                 )
                 embed.set_footer(text=f"{message.guild.name} • Bumped")
                 await thank_channel.send(embed=embed)
@@ -313,11 +329,9 @@ class BumpReminder(commands.Cog):
         mins, secs = divmod(rem, 60)
         remaining_str = f"{hrs}h {mins}m {secs}s"
 
-        # include instruction with /bump
         await ctx.send(
             f"✅ Simulated bump recorded; thank-you sent and reminder scheduled in {delay} seconds.\n"
-            f"Volgende bump mogelijk op (UTC): {next_allowed_dt.isoformat()} — over {remaining_str}.\n\n"
-            "Gebruik `/bump` in het tekstveld om te bumpen."
+            f"Volgende bump mogelijk op (UTC): {next_allowed_dt.isoformat()} — over {remaining_str}."
         )
 
 # module setup
