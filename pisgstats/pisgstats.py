@@ -4,6 +4,7 @@ import math
 import html
 from datetime import datetime, timezone, timedelta
 from collections import Counter, defaultdict
+import random
 
 import discord
 from redbot.core import commands, Config, checks, data_manager
@@ -168,7 +169,8 @@ class PisgStats(commands.Cog):
             "messages":0,"words":0,"characters":0,
             "links":0,"attachments":0,"mentions":0,
             "questions":0,"exclaims":0,"emoji":0,
-            "shouts":0,"longest":0,"avg_upper":0.0
+            "shouts":0,"longest":0,"avg_upper":0.0,
+            "quotes": []
         })
         u["name"] = getattr(message.author, "display_name", u["name"])
         u["messages"] += 1
@@ -186,6 +188,15 @@ class PisgStats(commands.Cog):
         # avg = avg + (new-avg)/n
         n = u["messages"]
         u["avg_upper"] = u["avg_upper"] + (upp_ratio - u["avg_upper"]) / max(n, 1)
+
+        # Quotes: bewaar recente berichten als mogelijke quotes (cap 10)
+        qtext = content.strip()
+        if qtext:
+            qlist = u.setdefault("quotes", [])
+            qlist.append(qtext)
+            if len(qlist) > 10:
+                # hou alleen de laatste 10
+                del qlist[0:len(qlist)-10]
 
     # ---------- listeners ----------
 
@@ -342,16 +353,22 @@ class PisgStats(commands.Cog):
         hours_pairs = [(str(i), hour_hist[i]) for i in range(24)]
         hours_svg = svg_bar_chart_vertical("Actiefste uren (UTC)", hours_pairs)
 
-        ch_pairs = []
-        for cid, c in top_channels:
-            name = f"#{getattr(guild.get_channel(int(cid)), 'name', cid)}"
-            ch_pairs.append((name, c.get("messages", 0)))
-        channels_svg = svg_bar_chart("Kanaalactiviteit (berichten)", ch_pairs)
+        # Kanaalactiviteit grafiek verwijderd per verzoek
 
         # HTML opbouw
         def user_row(uid, u):
             member = guild.get_member(int(uid))
             name = html.escape(member.display_name if member else u.get("name", uid))
+            # kies willekeurige quote indien aanwezig, anders streepje
+            quotes = u.get("quotes") or []
+            if quotes:
+                quote = random.choice(quotes)
+                # korte weergave
+                if len(quote) > 140:
+                    quote = quote[:137] + "..."
+                quote_html = html.escape(quote)
+            else:
+                quote_html = "—"
             return (
                 f"<tr><td>{name}</td>"
                 f"<td>{u.get('messages',0)}</td>"
@@ -360,9 +377,7 @@ class PisgStats(commands.Cog):
                 f"<td>{u.get('links',0)}</td>"
                 f"<td>{u.get('emoji',0)}</td>"
                 f"<td>{u.get('questions',0)}</td>"
-                f"<td>{u.get('exclaims',0)}</td>"
-                f"<td>{u.get('shouts',0)}</td>"
-                f"<td>{u.get('longest',0)}</td>"
+                f"<td>{quote_html}</td>"
                 f"</tr>"
             )
 
@@ -392,7 +407,6 @@ class PisgStats(commands.Cog):
         # charts
         html_parts.append("<div class='cols'>")
         html_parts.append(hours_svg)
-        html_parts.append(channels_svg)
         html_parts.append("</div>")
 
         # top woorden
@@ -417,7 +431,7 @@ class PisgStats(commands.Cog):
 
         # gebruikers tabel
         html_parts.append("<h2>Gebruikers</h2>")
-        html_parts.append("<table><tr><th>Gebruiker</th><th>Berichten</th><th>Woorden</th><th>Tekens</th><th>Links</th><th>Emoji</th><th>Vragen</th><th>Uitrepen</th><th>SHOUTS</th><th>Langste</th></tr>")
+        html_parts.append("<table><tr><th>Gebruiker</th><th>Berichten</th><th>Woorden</th><th>Tekens</th><th>Links</th><th>Emoji</th><th>Vragen</th><th>Quote</th></tr>")
         for uid, u in top_users:
             html_parts.append(user_row(uid, u))
         html_parts.append("</table>")
