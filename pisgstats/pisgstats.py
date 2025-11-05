@@ -363,10 +363,8 @@ class PisgStats(commands.Cog):
             quotes = u.get("quotes") or []
             if quotes:
                 quote = random.choice(quotes)
-                # korte weergave
-                if len(quote) > 140:
-                    quote = quote[:137] + "..."
-                quote_html = html.escape(quote)
+                # toon volledige quote, escape en behoud regelafbreking
+                quote_html = html.escape(quote).replace("\n", "<br>")
             else:
                 quote_html = "—"
             return (
@@ -389,6 +387,9 @@ class PisgStats(commands.Cog):
         th,td{border:1px solid #ddd; padding:6px 8px; font-size:14px;}
         th{background:#f2f2f2; text-align:left;}
         .cols{display:grid; grid-template-columns: 1fr 1fr; gap:24px;}
+        /* Zorg dat quotes netjes wrappen en meerdere regels tonen */
+        td { vertical-align: top; }
+        td:nth-child(8) { white-space: pre-wrap; word-wrap: break-word; max-width: 60ch; }
         svg rect { fill: #69c; }
         svg text { fill: #333; }
         </style>
@@ -450,3 +451,20 @@ class PisgStats(commands.Cog):
                 f.write(html_report)
 
         await ctx.send(file=discord.File(str(outfile), filename=f"pisgstats_{ctx.guild.id}.html"))
+
+    @pstats.command(name="quotes")
+    async def pstats_quotes(self, ctx, member: discord.Member = None):
+        """Toon opgeslagen quotes voor een gebruiker (debug)."""
+        conf = await self.config.guild(ctx.guild).all()
+        users = conf.get("users", {})
+        target = member or ctx.author
+        u = users.get(str(target.id))
+        if not u:
+            return await ctx.send(f"Geen data voor {target.display_name}.")
+        quotes = u.get("quotes", []) or []
+        if not quotes:
+            return await ctx.send(f"Geen quotes gevonden voor {target.display_name}.")
+        # laat maximaal 20 quotes zien
+        out_lines = [f"{i+1}. {q}" for i, q in enumerate(quotes[-20:])]
+        # verstuur als codeblock om formatting te behouden
+        await ctx.send(f"Quotes voor **{target.display_name}**:\n" + "```" + "\n".join(out_lines) + "```")
