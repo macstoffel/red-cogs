@@ -21,6 +21,10 @@ class LoggingCog(commands.Cog):
         }
         self.config.register_guild(**default_guild)
 
+        # Tijdsoffset toepassen op alle gelogde tijden (voeg hier +1 uur)
+        # Pas aan als je een andere offset wilt (negatief mogelijk).
+        self.time_offset = datetime.timedelta(hours=1)
+
     # -------------------------------
     # Helper functies
     # -------------------------------
@@ -30,10 +34,10 @@ class LoggingCog(commands.Cog):
         safe_name = channel.name.replace("/", "_").replace("\\", "_")
         return os.path.join(log_dir, f"{safe_name}{suffix}.log")
 
-    def get_channel_daily_log_file(self, log_dir, channel: discord.TextChannel, date: datetime.date):
-        """Geeft het pad voor een kanaal-daglogbestand."""
+    def get_channel_monthly_log_file(self, log_dir, channel: discord.TextChannel, date: datetime.date):
+        """Geeft het pad voor een kanaal-maandlogbestand (YYYY-MM)."""
         safe_name = channel.name.replace("/", "_").replace("\\", "_")
-        return os.path.join(log_dir, f"{safe_name}_{date.isoformat()}.log")
+        return os.path.join(log_dir, f"{safe_name}_{date.year}-{date.month:02d}.log")
 
     async def log(self, guild: discord.Guild, channel: discord.TextChannel, content: str, timestamp: datetime.datetime = None, suffix=""):
         """Schrijft een regel naar het kanaal-daglogbestand én naar een centrale logfile. Houdt max 2 daglogs per kanaal."""
@@ -43,28 +47,26 @@ class LoggingCog(commands.Cog):
         if not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
 
-        # Gebruik daglog per kanaal
-        log_file = self.get_channel_daily_log_file(log_dir, channel, (timestamp or datetime.datetime.now()).date())
+        # Gebruik maandlog per kanaal
+        log_file = self.get_channel_monthly_log_file(log_dir, channel, (timestamp or datetime.datetime.now()).date())
         central_file = os.path.join(log_dir, "all_channels.log")
 
-        # Daglog cleanup: max 2 per kanaal
-        safe_name = channel.name.replace("/", "_").replace("\\", "_")
-        pattern = os.path.join(log_dir, f"{safe_name}_*.log")
-        files = sorted(glob.glob(pattern))
-        if len(files) > 2:
-            for oldfile in files[:-2]:
-                os.remove(oldfile)
+        # Geen automatische verwijdering meer — bewaar alle logbestanden per maand
 
+        # schrijf headers met offsettijd
+        now_with_offset = datetime.datetime.now() + self.time_offset
         if not os.path.exists(log_file):
             with open(log_file, "a", encoding="utf-8") as f:
-                f.write(f"--- Logging gestart {datetime.datetime.now()} ---\n")
+                f.write(f"--- Logging gestart {now_with_offset} ---\n")
         if not os.path.exists(central_file):
             with open(central_file, "a", encoding="utf-8") as f:
-                f.write(f"--- Centrale logging gestart {datetime.datetime.now()} ---\n")
+                f.write(f"--- Centrale logging gestart {now_with_offset} ---\n")
 
         if timestamp is None:
             timestamp = datetime.datetime.now()
-        line = f"[{timestamp.strftime('%H:%M:%S')}] #{channel.name} {content}\n"
+        # Pas offset toe op de weergegeven tijd
+        display_ts = timestamp + self.time_offset
+        line = f"[{display_ts.strftime('%H:%M:%S')}] #{channel.name} {content}\n"
 
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(line)
