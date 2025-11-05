@@ -461,7 +461,7 @@ class PisgStats(commands.Cog):
 
         # gebruikers tabel
         html_parts.append("<h2>Gebruikers</h2>")
-        html_parts.append("<table><tr><th>Gebruiker</th><th>Berichten</th><th>Woorden</th><th>Tekens</th><th>Links</th><th>Emoji</th><th>Vragen</th><th>Quote</th></tr>")
+        html_parts.append("<table><tr><th>Gebruiker</th><th>Berichten</th><th>Woorden</th><th>Tekens</th><th>Links</th><th>Emoji</th><th>Vragen</th><th>Random Quote</th></tr>")
         for uid, u in top_users:
             html_parts.append(user_row(uid, u))
         html_parts.append("</table>")
