@@ -58,8 +58,7 @@ class BumpReminder(commands.Cog):
             if channel and role:
                 try:
                     reminder_text = f"{role.mention} Tijd om weer te bumpen! 🚀 Gebruik `/bump` in het tekstveld om te bumpen."
-                    # stuur reminder mét knop die een ephemeral /bump hint teruggeeft
-                    await channel.send(reminder_text, view=GetBumpView("/bump"))
+                    await channel.send(reminder_text)
                     self.logger.info("Sent bump reminder in guild %s channel %s", guild.id, channel_id)
                 except discord.Forbidden:
                     self.logger.warning("Missing permission to send reminder in guild %s channel %s", guild.id, channel_id)
