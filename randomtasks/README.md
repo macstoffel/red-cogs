@@ -41,18 +41,27 @@
 
 ---
 
-## Commando's
-> Let op: standaard prefix van Red is `[p]`. Vervang dit door jouw prefix indien anders.
+## Commando's & rechten
+Let op: `[p]` is de bot-prefix; vervang indien anders. Sommige commando's zijn beperkt tot moderators of hoger.
 
 - `[p]taak`  
-  Geeft een random taak voor de server (embed).
+  Geeft een random taak (embed). Iedereen kan dit gebruiken. Toewijzingen worden, indien geconfigureerd, gelogd.
 
 - `[p]taakgui`  
-  Opent de interactieve GUI-embed met knoppen. Knoppen sturen veel reacties als **ephemeral** — alleen zichtbaar voor de gebruiker die ermee interageert.
+  Opent de interactieve GUI-embed met knoppen. Veel interacties zijn ephemeral (zichtbaar alleen voor de gebruiker).
 
-- Beheer (vereist administrator-permissies in de code; Red's permission system regelt toegang):
-  - Via de GUI: gebruik de ➕ en 🗑 knoppen om taken toe te voegen of te verwijderen.
-  - De GUI vraagt je om invoer in het kanaal wanneer nodig (voor toevoegen/verwijderen).
+- Administratie (vereist moderator of hoger via cog-perms of Red admin):
+  - `[p]taakadd <tekst>`  
+ Voeg een taak toe (moderator of hoger).
+  - `[p]taakremove <nummer>`  
+ Verwijder een taak op nummer (moderator of hoger).
+  - `[p]taaklist`  
+ Toont de takenlijst in een embed (moderator of hoger).
+  - `[p]taaklogset [#kanaal]`  
+ Stel het logkanaal in voor taak-toewijzingen. Laat leeg om uit te schakelen. (administrator/manage_guild required)
+
+- GUI-beheer (gebruikersinterface):
+  - Knoppen voor toevoegen/verwijderen/list zijn beveiligd: alleen moderators of hoger kunnen deze acties uit voeren via de GUI; anderen krijgen een melding dat ze geen toegang hebben.
 
 ---
 
@@ -76,11 +85,6 @@ Bij eerste keer gebruik krijgt een server de standaardtaken toegewezen als er no
 
 ## Opmerkingen & tips
 - De GUI maakt gebruik van `discord.ui.View` en ephemeral responses zodat interacties niet het kanaal vervuilen.
-- Als je de cog verder wilt uitbreiden kun je overwegen:
-  - Slash commands (voor betere integratie)
-  - Tijd-gestuurde dagelijkse taken (background task per guild)
-  - Rechten per role (wie taken mag toevoegen/verwijderen)
-  - Opslaan van taken in een aparte JSON per guild (momenteel gebruikt de cog Red's Config)
 
 ---
 
