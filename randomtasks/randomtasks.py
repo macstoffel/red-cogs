@@ -5,6 +5,8 @@ import discord
 from discord.ui import View, Button
 from pathlib import Path
 import datetime
+import os
+from typing import Optional
 
 class RandomTasks(commands.Cog):
     """Geeft random taken per server en beheert ze via een GUI."""
@@ -12,8 +14,13 @@ class RandomTasks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=987654322)
-        self.config.register_guild(tasks=[], log_channel_id=None)
+        # keep a place for misc guild settings (log kanaal + custom title)
+        self.config.register_guild(tasks=[], log_channel_id=None, custom_title=None)
+        # default/global tasks file (used as seed)
         self.data_path = Path(__file__).parent / "taken.json"
+        # per-guild persistent storage dir
+        self.guild_data_dir = Path(__file__).parent / "guild_data"
+        os.makedirs(self.guild_data_dir, exist_ok=True)
 
         if self.data_path.exists():
             with open(self.data_path, "r", encoding="utf-8") as f:
@@ -26,12 +33,41 @@ class RandomTasks(commands.Cog):
         # Door custom_ids te gebruiken op buttons kan Discord interacties blijven routeren.
         bot.add_view(self.PersistentTaskView(self))
 
+    # ---- New: per-guild file helpers ----
+    def _guild_tasks_file(self, guild_id: int) -> Path:
+        return self.guild_data_dir / f"{guild_id}_tasks.json"
+
+    async def load_guild_tasks(self, guild_id: int):
+        path = self._guild_tasks_file(guild_id)
+        if path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, list):
+                    return data
+                # backward compat: object with "tasks" key
+                if isinstance(data, dict) and "tasks" in data:
+                    return data["tasks"]
+            except Exception:
+                # on error, fall back to default
+                return list(self.default_tasks)
+        # create file with defaults
+        await self.save_guild_tasks(guild_id, list(self.default_tasks))
+        return list(self.default_tasks)
+
+    async def save_guild_tasks(self, guild_id: int, tasks):
+        path = self._guild_tasks_file(guild_id)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(tasks, f, ensure_ascii=False, indent=2)
+        except Exception:
+            # best-effort, don't raise to avoid breaking UI
+            return
+
     async def get_tasks(self, guild_id):
-        tasks = await self.config.guild_from_id(guild_id).tasks()
-        if not tasks:
-            await self.config.guild_from_id(guild_id).tasks.set(self.default_tasks)
-            return self.default_tasks
-        return tasks
+        # override previous behavior: load from per-guild JSON
+        return await self.load_guild_tasks(guild_id)
+    # ---- end per-guild helpers ----
 
     def _is_mod(self, member: discord.Member) -> bool:
         perms = member.guild_permissions
@@ -84,8 +120,10 @@ class RandomTasks(commands.Cog):
     # ✅ Hoofd-GUI command (persistent view)
     @commands.command()
     async def taakgui(self, ctx):
+        custom = await self.config.guild(ctx.guild).custom_title()
+        title = custom or f"📌 Taken Manager — {ctx.guild.name}"
         embed = discord.Embed(
-            title="📌 Taken Manager (Server)",
+            title=title,
             description=f"Taken opgeslagen voor **{ctx.guild.name}**.\nKies een optie.",
             color=discord.Color.purple()
         )
@@ -136,7 +174,7 @@ class RandomTasks(commands.Cog):
             msg = await self.cog.bot.wait_for("message", check=check)
             tasks = await self.cog.get_tasks(interaction.guild.id)
             tasks.append(msg.content)
-            await self.cog.config.guild(interaction.guild).tasks.set(tasks)
+            await self.cog.save_guild_tasks(interaction.guild.id, tasks)
 
             await interaction.followup.send(f"✅ Taak toegevoegd: **{msg.content}**", ephemeral=True)
 
@@ -163,7 +201,7 @@ class RandomTasks(commands.Cog):
             except:
                 return await interaction.followup.send("❌ Ongeldig nummer.", ephemeral=True)
 
-            await self.cog.config.guild(interaction.guild).tasks.set(tasks)
+            await self.cog.save_guild_tasks(interaction.guild.id, tasks)
             await interaction.followup.send(f"🗑 Verwijderd: **{removed}**", ephemeral=True)
 
         @discord.ui.button(label="📋 Takenlijst", style=discord.ButtonStyle.secondary, custom_id="task_list_button")
@@ -219,7 +257,7 @@ class RandomTasks(commands.Cog):
             return await ctx.send("❌ Alleen moderators of hoger mogen taken beheren.")
         tasks = await self.get_tasks(ctx.guild.id)
         tasks.append(taak_text)
-        await self.config.guild(ctx.guild).tasks.set(tasks)
+        await self.save_guild_tasks(ctx.guild.id, tasks)
         await ctx.send(f"✅ Taak toegevoegd: **{taak_text}**")
 
     @commands.guild_only()
@@ -233,7 +271,7 @@ class RandomTasks(commands.Cog):
             removed = tasks.pop(index - 1)
         except Exception:
             return await ctx.send("❌ Ongeldig index-nummer.")
-        await self.config.guild(ctx.guild).tasks.set(tasks)
+        await self.save_guild_tasks(ctx.guild.id, tasks)
         await ctx.send(f"🗑 Verwijderd: **{removed}**")
 
     @commands.guild_only()
@@ -250,6 +288,14 @@ class RandomTasks(commands.Cog):
             color=discord.Color.purple()
         )
         await ctx.send(embed=embed)
+
+    @commands.guild_only()
+    @commands.admin_or_permissions(manage_guild=True)
+    @commands.command()
+    async def taaktitleset(self, ctx, *, title: Optional[str] = None):
+        """Stel een custom titel in voor de GUI embed. Laat leeg om terug te gaan naar de standaard."""
+        await self.config.guild(ctx.guild).custom_title.set(title)
+        await ctx.send(f"✅ Custom titel ingesteld: {title if title else 'standaard'}")
 
 
 async def setup(bot):
