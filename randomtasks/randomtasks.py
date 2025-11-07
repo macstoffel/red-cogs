@@ -6,6 +6,7 @@ from discord.ui import View, Button
 from pathlib import Path
 import datetime
 import os
+import logging
 from typing import Optional
 
 class RandomTasks(commands.Cog):
@@ -14,13 +15,19 @@ class RandomTasks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=987654322)
-        # keep a place for misc guild settings (log kanaal + custom title)
         self.config.register_guild(tasks=[], log_channel_id=None, custom_title=None)
-        # default/global tasks file (used as seed)
         self.data_path = Path(__file__).parent / "taken.json"
-        # per-guild persistent storage dir
         self.guild_data_dir = Path(__file__).parent / "guild_data"
         os.makedirs(self.guild_data_dir, exist_ok=True)
+
+        # logger
+        self.logger = logging.getLogger("red.randomtasks")
+        # ensure persistent view re-registered
+        try:
+            bot.add_view(self.PersistentTaskView(self))
+        except Exception:
+            # ignore if view already added
+            pass
 
         if self.data_path.exists():
             with open(self.data_path, "r", encoding="utf-8") as f:
@@ -28,10 +35,6 @@ class RandomTasks(commands.Cog):
                 self.default_tasks = data.get("tasks", [])
         else:
             self.default_tasks = []
-
-        # ✅ Maak de GUI persistent (blijft werken bij bot-restart)
-        # Door custom_ids te gebruiken op buttons kan Discord interacties blijven routeren.
-        bot.add_view(self.PersistentTaskView(self))
 
     # ---- New: per-guild file helpers ----
     def _guild_tasks_file(self, guild_id: int) -> Path:
@@ -45,24 +48,39 @@ class RandomTasks(commands.Cog):
                     data = json.load(f)
                 if isinstance(data, list):
                     return data
-                # backward compat: object with "tasks" key
                 if isinstance(data, dict) and "tasks" in data:
                     return data["tasks"]
-            except Exception:
-                # on error, fall back to default
+            except Exception as e:
+                self.logger.exception("Failed to load guild tasks for %s: %s", guild_id, e)
+                # fall back to defaults
                 return list(self.default_tasks)
-        # create file with defaults
+        # file doesn't exist -> create with defaults
         await self.save_guild_tasks(guild_id, list(self.default_tasks))
         return list(self.default_tasks)
 
     async def save_guild_tasks(self, guild_id: int, tasks):
+        """Atomic write to per-guild JSON. Returns True on success."""
         path = self._guild_tasks_file(guild_id)
+        tmp_path = path.with_suffix(".tmp")
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            os.makedirs(path.parent, exist_ok=True)
+            # write to temp file then rename
+            with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(tasks, f, ensure_ascii=False, indent=2)
-        except Exception:
-            # best-effort, don't raise to avoid breaking UI
-            return
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, path)
+            self.logger.debug("Saved tasks for guild %s -> %s", guild_id, path)
+            return True
+        except Exception as e:
+            # cleanup temp file if present
+            try:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+            except Exception:
+                pass
+            self.logger.exception("Failed to save guild tasks for %s: %s", guild_id, e)
+            return False
 
     async def get_tasks(self, guild_id):
         # override previous behavior: load from per-guild JSON
@@ -296,6 +314,19 @@ class RandomTasks(commands.Cog):
         """Stel een custom titel in voor de GUI embed. Laat leeg om terug te gaan naar de standaard."""
         await self.config.guild(ctx.guild).custom_title.set(title)
         await ctx.send(f"✅ Custom titel ingesteld: {title if title else 'standaard'}")
+
+    @commands.guild_only()
+    @commands.admin_or_permissions(manage_guild=True)
+    @commands.command()
+    async def taakdebugsave(self, ctx):
+        """Forceert opslaan van de huidige takenlijst naar guild_data en toont pad / resultaat."""
+        tasks = await self.get_tasks(ctx.guild.id)
+        ok = await self.save_guild_tasks(ctx.guild.id, tasks)
+        path = self._guild_tasks_file(ctx.guild.id)
+        if ok:
+            await ctx.send(f"✅ Tasks opgeslagen: `{path}`")
+        else:
+            await ctx.send("❌ Opslaan mislukt — bekijk bot logs voor details.")
 
 
 async def setup(bot):
