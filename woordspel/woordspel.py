@@ -1,25 +1,45 @@
 import discord
 from redbot.core import commands
 import enchant  # extra dependency voor woordcontrole
+from typing import Optional
 
 class Woordspel(commands.Cog):
-    """Een woordketting spel voor Discord met scoretracking en Nederlandse woordcontrole."""
+    """Een woordketting spel voor Discord met scoretracking en Nederlandse woordcontrole.
+    Ondersteunt meerdere guilds tegelijk (per-guild game state)."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.active = False
-        self.channel_id = None
-        self.current_score = 0
-        self.high_score = 0
-        self.last_word = None
-        self.last_user_id = None
-        self.goal_points = 10
+        # Per-guild spelstatus
+        # structuur per guild_id:
+        # {
+        #   "active": bool,
+        #   "channel_id": int,
+        #   "current_score": int,
+        #   "high_score": int,
+        #   "last_word": Optional[str],
+        #   "last_user_id": Optional[int],
+        #   "goal_points": int
+        # }
+        self.games = {}
 
-        # Nederlandse woordenlijst
+        # Nederlandse woordenlijst (gedeeld)
         try:
             self.nl_dict = enchant.Dict("nl_NL")
         except enchant.errors.DictNotFoundError:
             self.nl_dict = None
+
+    # ---------- helpers ----------
+    def _get_state(self, guild_id: int) -> dict:
+        st = self.games.setdefault(guild_id, {
+            "active": False,
+            "channel_id": None,
+            "current_score": 0,
+            "high_score": 0,
+            "last_word": None,
+            "last_user_id": None,
+            "goal_points": 10
+        })
+        return st
 
     # -------------------- Hoofdcommand groep --------------------
     @commands.group()
@@ -31,20 +51,22 @@ class Woordspel(commands.Cog):
     # -------------------- Subcommands --------------------
     @woordspel.command()
     async def start(self, ctx, goal: int = 10):
-        """Start het woordspel."""
-        if self.active:
-            await ctx.send("Er is al een spel actief!")
-            return
+        """Start het woordspel (per guild)."""
         if self.nl_dict is None:
             await ctx.send("⚠️ Nederlandse woordenlijst niet gevonden. Installeer pyenchant met Nederlandse dictionaries.")
             return
 
-        self.active = True
-        self.channel_id = ctx.channel.id
-        self.current_score = 0
-        self.last_word = None
-        self.last_user_id = None
-        self.goal_points = goal
+        st = self._get_state(ctx.guild.id)
+        if st["active"]:
+            await ctx.send("Er is al een spel actief in deze server!")
+            return
+
+        st["active"] = True
+        st["channel_id"] = ctx.channel.id
+        st["current_score"] = 0
+        st["last_word"] = None
+        st["last_user_id"] = None
+        st["goal_points"] = goal
 
         await ctx.send(embed=self.make_embed(
             title="🎮 Woordspel gestart!",
@@ -53,32 +75,35 @@ class Woordspel(commands.Cog):
                 "- Typ een woord dat begint met de laatste letter van het vorige woord.\n"
                 "- Je mag niet twee keer achter elkaar.\n"
                 "- Typ geen meerdere woorden tegelijk!\n"
-                f"Doel: {self.goal_points} punten\n\n"
+                f"Doel: {st['goal_points']} punten\n\n"
                 "Het spel begint nu! Typ je eerste woord."
             )
         ))
 
     @woordspel.command()
     async def stop(self, ctx):
-        """Stop het woordspel."""
-        if not self.active:
-            await ctx.send("Er is geen actief spel!")
+        """Stop het woordspel (per guild)."""
+        st = self._get_state(ctx.guild.id)
+        if not st["active"]:
+            await ctx.send("Er is geen actief spel in deze server!")
             return
-        self.active = False
-        self.current_score = 0
-        self.last_word = None
-        self.last_user_id = None
+        st["active"] = False
+        st["current_score"] = 0
+        st["last_word"] = None
+        st["last_user_id"] = None
         await ctx.send("Het woordspel is gestopt.")
 
     @woordspel.command()
     async def totaal(self, ctx):
-        """Toon de huidige score."""
-        await ctx.send(f"Huidige score: {self.current_score}")
+        """Toon de huidige score (per guild)."""
+        st = self._get_state(ctx.guild.id)
+        await ctx.send(f"Huidige score: {st['current_score']}")
 
     @woordspel.command()
     async def highscore(self, ctx):
-        """Toon de hoogste behaalde score."""
-        await ctx.send(f"Hoogste score ooit: {self.high_score}")
+        """Toon de hoogste behaalde score (per guild)."""
+        st = self._get_state(ctx.guild.id)
+        await ctx.send(f"Hoogste score ooit: {st['high_score']}")
 
     @woordspel.command()
     async def help(self, ctx):
@@ -98,9 +123,14 @@ class Woordspel(commands.Cog):
     # -------------------- Listener --------------------
     @commands.Cog.listener()
     async def on_message(self, message):
-        if not self.active or message.author.bot:
+        # ignore bots / DMs
+        if message.author.bot or not message.guild:
             return
-        if message.channel.id != self.channel_id:
+
+        st = self._get_state(message.guild.id)
+        if not st["active"]:
+            return
+        if message.channel.id != st["channel_id"]:
             return
 
         content = message.content.strip().lower()
@@ -108,65 +138,93 @@ class Woordspel(commands.Cog):
 
         # Check op meerdere woorden
         if len(words) != 1:
-            await message.delete()
+            try:
+                await message.delete()
+            except Exception:
+                pass
+            st["last_user_id"] = message.author.id
             await message.channel.send(embed=self.make_embed(
                 description=f"❌ Je mag maar één woord typen! Beurt voorbij."
             ))
-            self.last_user_id = message.author.id
             return
 
-        # Check beurt
-        if self.last_user_id == message.author.id:
+        # Check beurt (niet twee keer achter elkaar)
+        if st["last_user_id"] == message.author.id:
             await message.channel.send(embed=self.make_embed(
                 description="❌ Je kan niet twee keer achter elkaar spelen!"
             ))
             return
 
-        # Check juiste beginletter
-        if self.last_word:
-            if not content.startswith(self.last_word[-1]):
+        # Check juiste beginletter (als er een last_word is)
+        if st["last_word"]:
+            required = st["last_word"][-1]
+            if not content.startswith(required):
+                # fout begonnen met verkeerde letter -> reset / herstart spel met uitleg
+                if st["current_score"] > st["high_score"]:
+                    st["high_score"] = st["current_score"]
+                st["current_score"] = 0
+                st["last_word"] = None
+                st["last_user_id"] = None
+                st["active"] = True  # start nieuw spel direct
                 await message.channel.send(embed=self.make_embed(
+                    title="🔁 Fout beginletter — Nieuw spel gestart!",
                     description=(
-                        f"❌ Fout woord! Het moest beginnen met `{self.last_word[-1]}`.\n"
-                        "Score is gereset. Nieuw spel begint!"
+                        f"❌ Het woord moest beginnen met `{required}` maar `{content}` begint anders.\n\n"
+                        "Het spel is opnieuw gestart en de score is gereset.\n\n"
+                        "Regels:\n"
+                        "- Typ een woord dat begint met de laatste letter van het vorige woord.\n"
+                        "- Je mag niet twee keer achter elkaar.\n"
+                        "- Typ geen meerdere woorden tegelijk!\n\n"
+                        "Typ je eerste woord om te beginnen."
                     )
                 ))
-                if self.current_score > self.high_score:
-                    self.high_score = self.current_score
-                self.current_score = 0
-                self.last_word = None
-                self.last_user_id = None
                 return
 
         # Check of het woord bestaat
         if not self.nl_dict.check(content):
+            # ongeldig woord -> reset / herstart spel met uitleg
+            st["last_user_id"] = message.author.id
+            if st["current_score"] > st["high_score"]:
+                st["high_score"] = st["current_score"]
+            st["current_score"] = 0
+            st["last_word"] = None
+            st["last_user_id"] = None
+            st["active"] = True  # start nieuw spel direct
             await message.channel.send(embed=self.make_embed(
-                description=f"❌ `{content}` is geen geldig Nederlands woord! Beurt voorbij."
+                title="🔁 Ongeldig woord — Nieuw spel gestart!",
+                description=(
+                    f"❌ `{content}` is geen geldig Nederlands woord! De score is gereset.\n\n"
+                    "Het spel is opnieuw gestart.\n\n"
+                    "Regels:\n"
+                    "- Typ een woord dat begint met de laatste letter van het vorige woord.\n"
+                    "- Je mag niet twee keer achter elkaar.\n"
+                    "- Typ geen meerdere woorden tegelijk!\n\n"
+                    "Typ je eerste woord om te beginnen."
+                )
             ))
-            self.last_user_id = message.author.id
             return
 
         # Correct woord
-        self.current_score += 1
-        self.last_word = content
-        self.last_user_id = message.author.id
+        st["current_score"] += 1
+        st["last_word"] = content
+        st["last_user_id"] = message.author.id
 
         await message.channel.send(embed=self.make_embed(
             description=f"✅ {message.author.display_name} heeft het woord `{content}` getypt!\nStart het volgende woord met de laatste letter\n"
-                        f"Huidige score: {self.current_score}\nDoel: {self.goal_points}"
+                        f"Huidige score: {st['current_score']}\nDoel: {st['goal_points']}"
         ))
 
         # Check doelpunten
-        if self.current_score >= self.goal_points:
+        if st["current_score"] >= st["goal_points"]:
             await message.channel.send(embed=self.make_embed(
-                description=f"🎉 Doel bereikt! Score: {self.current_score}"
+                description=f"🎉 Doel bereikt! Score: {st['current_score']}"
             ))
-            if self.current_score > self.high_score:
-                self.high_score = self.current_score
-            self.active = False
-            self.current_score = 0
-            self.last_word = None
-            self.last_user_id = None
+            if st["current_score"] > st["high_score"]:
+                st["high_score"] = st["current_score"]
+            st["active"] = False
+            st["current_score"] = 0
+            st["last_word"] = None
+            st["last_user_id"] = None
 
     # -------------------- Helper --------------------
     def make_embed(self, title=None, description=None):
