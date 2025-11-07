@@ -5,52 +5,40 @@
 ---
 
 ## Features
-- Per-server (guild) takenlijsten
+- Per-server (guild) takenlijsten.
 - GUI-achtige embed met knoppen:
-  - 🎲 Random Taak (ephemeral)
-  - ➕ Taak toevoegen
-  - 🗑 Taak verwijderen
-  - 📋 Takenlijst (ephemeral)
-- Paarse embeds voor stijlconsistentie
-- Standaardtaken in `taken.json`
-- Eenvoudig te installeren en klaar voor GitHub
-
----
-
-## Bestanden in deze map
-- `randomtasks.py` — De cog zelf (inclusief GUI met `discord.ui.View`)
-- `__init__.py` — Cog loader
-- `info.json` — Metadata voor Redbot
-- `taken.json` — Standaardtaken (JSON-array `tasks`)
-- `README.md` — Deze handleiding
+  - 🎲 Random Taak (ephemeral) — iedereen kan een taak opvragen.
+  - ➕ Taak toevoegen — alleen moderators of hoger.
+  - 🗑 Taak verwijderen — alleen moderators of hoger.
+  - 📋 Takenlijst — alleen moderators of hoger.
+- Beheerbare taken via zowel GUI als tekstcommando's.
+- Logging: moderator kan een logkanaal instellen; toewijzingen worden daar gelogd (wie welke taak kreeg, vanuit welk kanaal, timestamp).
+- Standaardtaken in `taken.json`.
+- Paarse embeds voor stijlconsistentie.
 
 ---
 
 ## Vereisten
-- Red-DiscordBot (Red) — compatibel met recente versies (minimaal `min_bot_version` in `info.json`)
+- Red-DiscordBot (Red) — compatibel met recente versies.
 - Python 3.8+
-- Discord bot token correct ingesteld in Red
+- Bot heeft benodigde intents & permissies (send messages, embed links, use interactions).
 
 ---
 
-## ✅ Installatie (via Discord)
+## Installatie (kort)
+1. Voeg de repo toe aan Red:
+```
+[p]repo add MacStoffel https://github.com/MacStoffel/redcogs
+```
+2. Installeer de cog:
+```
+[p]cog install MacStoffel randomtasks
+```
+3. Laad de cog:
+```
+[p]load randomtasks
+```
 
-1) **Voeg de repo toe aan Redbot**
-   Typ in een kanaal waar je bot toegang heeft (met jouw adminrechten):
-
-   ```
-   [p]repo add MacStoffel https://github.com/MacStoffel/redcogs
-   ```
-
-2) **Installeer de cog**
-   ```
-   [p]cog install MacStoffel randomtasks
-   ```
-
-3) **Laad de cog**
-   ```
-   [p]load randomtasks
-   ```
 ---
 
 ## Commando's
