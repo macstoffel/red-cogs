@@ -1,8 +1,9 @@
 import discord
 from redbot.core import commands
+import enchant  # extra dependency voor woordcontrole
 
 class Woordspel(commands.Cog):
-    """Een woordketting spel voor Discord met scoretracking."""
+    """Een woordketting spel voor Discord met scoretracking en Nederlandse woordcontrole."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -14,20 +15,37 @@ class Woordspel(commands.Cog):
         self.last_user_id = None
         self.goal_points = 10
 
-    # ---------- Commands ----------
+        # Nederlandse woordenlijst
+        try:
+            self.nl_dict = enchant.Dict("nl_NL")
+        except enchant.errors.DictNotFoundError:
+            self.nl_dict = None
 
-    @commands.command()
+    # -------------------- Hoofdcommand groep --------------------
+    @commands.group()
+    async def woordspel(self, ctx):
+        """Hoofdcommand voor het Woordspel."""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    # -------------------- Subcommands --------------------
+    @woordspel.command()
     async def start(self, ctx, goal: int = 10):
         """Start het woordspel."""
         if self.active:
             await ctx.send("Er is al een spel actief!")
             return
+        if self.nl_dict is None:
+            await ctx.send("⚠️ Nederlandse woordenlijst niet gevonden. Installeer pyenchant met Nederlandse dictionaries.")
+            return
+
         self.active = True
         self.channel_id = ctx.channel.id
         self.current_score = 0
         self.last_word = None
         self.last_user_id = None
         self.goal_points = goal
+
         await ctx.send(embed=self.make_embed(
             title="🎮 Woordspel gestart!",
             description=(
@@ -40,7 +58,7 @@ class Woordspel(commands.Cog):
             )
         ))
 
-    @commands.command()
+    @woordspel.command()
     async def stop(self, ctx):
         """Stop het woordspel."""
         if not self.active:
@@ -52,18 +70,32 @@ class Woordspel(commands.Cog):
         self.last_user_id = None
         await ctx.send("Het woordspel is gestopt.")
 
-    @commands.command()
+    @woordspel.command()
     async def totaal(self, ctx):
         """Toon de huidige score."""
         await ctx.send(f"Huidige score: {self.current_score}")
 
-    @commands.command()
+    @woordspel.command()
     async def highscore(self, ctx):
         """Toon de hoogste behaalde score."""
         await ctx.send(f"Hoogste score ooit: {self.high_score}")
 
-    # ---------- Listener ----------
+    @woordspel.command()
+    async def help(self, ctx):
+        """Toon een overzicht van alle subcommands."""
+        embed = self.make_embed(
+            title="Woordspel Commands",
+            description=(
+                "`[p]woordspel start [doelpunten]` - Start het spel (doelpunten optioneel)\n"
+                "`[p]woordspel stop` - Stop het spel\n"
+                "`[p]woordspel totaal` - Toon huidige score\n"
+                "`[p]woordspel highscore` - Toon hoogste score ooit\n"
+                "`[p]woordspel help` - Toon dit overzicht"
+            )
+        )
+        await ctx.send(embed=embed)
 
+    # -------------------- Listener --------------------
     @commands.Cog.listener()
     async def on_message(self, message):
         if not self.active or message.author.bot:
@@ -83,7 +115,7 @@ class Woordspel(commands.Cog):
             self.last_user_id = message.author.id
             return
 
-        # Check op beurt
+        # Check beurt
         if self.last_user_id == message.author.id:
             await message.channel.send(embed=self.make_embed(
                 description="❌ Je kan niet twee keer achter elkaar spelen!"
@@ -105,6 +137,14 @@ class Woordspel(commands.Cog):
                 self.last_word = None
                 self.last_user_id = None
                 return
+
+        # Check of het woord bestaat
+        if not self.nl_dict.check(content):
+            await message.channel.send(embed=self.make_embed(
+                description=f"❌ `{content}` is geen geldig Nederlands woord! Beurt voorbij."
+            ))
+            self.last_user_id = message.author.id
+            return
 
         # Correct woord
         self.current_score += 1
@@ -128,8 +168,7 @@ class Woordspel(commands.Cog):
             self.last_word = None
             self.last_user_id = None
 
-    # ---------- Helper ----------
-
+    # -------------------- Helper --------------------
     def make_embed(self, title=None, description=None):
         embed = discord.Embed(
             title=title,

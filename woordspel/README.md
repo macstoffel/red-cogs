@@ -29,7 +29,13 @@
 - `[p]start [doelpunten]` – Start het spel. Optioneel: doelpunten instellen (standaard 10).  
 - `[p]stop` – Stop het spel.  
 - `[p]totaal` – Toon de huidige score.  
-- `[p]highscore` – Toon de hoogste behaalde score ooit.  
+- `[p]highscore` – Toon de hoogste behaalde score ooit. 
+```
+- [p]woordspel start [doelpunten] – Start het spel. Optioneel: doelpunten instellen (standaard 10).  
+- [p]woordspel stop – Stop het spel.  
+- [p]woordspel totaal – Toon de huidige score.
+- [p]woordspel highscore – Toon de hoogste behaalde score ooit. 
+- [p]woordspel help 
 
 ---
 

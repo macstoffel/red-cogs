@@ -2,9 +2,9 @@
   "name": "Woordspel",
   "display_name": "Woordspel",
   "author": "MacStoffel",
-  "description": "Een woordketting spel voor Discord met scoretracking en embeds in paarse tinten.",
-  "install_msg": "Dank je voor het installeren van Woordspel! Gebruik `[p]start` om te beginnen.",
-  "requirements": [],
+  "description": "Een woordketting spel voor Discord met scoretracking en Nederlandse woordcontrole.",
+  "install_msg": "Dank je voor het installeren van Woordspel! Zorg dat je `pyenchant` hebt geïnstalleerd met Nederlandse dictionaries.\nGebruik `[p]woordspel start` om te beginnen.",
+  "requirements": ["pyenchant"],
   "tags": ["game", "woordspel", "discord", "fun"],
   "hidden": false,
   "min_red_version": "3.5.0"
