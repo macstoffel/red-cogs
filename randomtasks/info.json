@@ -1,0 +1,12 @@
+{
+  "author": [
+    "MacStoffel"
+  ],
+  "install_msg": "\u2705 RandomTasks GUI succesvol ge\u00efnstalleerd!",
+  "name": "RandomTasks",
+  "short": "Random taken met GUI",
+  "description": "Per-server taken met interactief menu.",
+  "hidden": false,
+  "disabled": false,
+  "min_bot_version": "3.5.0"
+}
