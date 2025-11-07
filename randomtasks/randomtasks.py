@@ -56,7 +56,9 @@ class RandomTasks(commands.Cog):
                 color=discord.Color.purple(),
                 timestamp=datetime.datetime.utcnow(),
             )
-            embed.add_field(name="Gebruiker", value=f"{user.mention} ({user.id})", inline=False)
+            member = guild.get_member(int(user.id)) if hasattr(user, "id") else None
+            display_name = member.display_name if member else getattr(user, "display_name", getattr(user, "name", str(user)))
+            embed.add_field(name="Gebruiker", value=f"{display_name} ({user.id})", inline=False)
             embed.add_field(name="Taak", value=task, inline=False)
             if ctx_channel:
                 embed.add_field(name="Aangevraagd in", value=f"{ctx_channel.mention} ({ctx_channel.id})", inline=False)
@@ -103,7 +105,7 @@ class RandomTasks(commands.Cog):
             taak = random.choice(tasks)
 
             embed = discord.Embed(
-                title=f"🎲 Random Taak voor\n {user.mention}:",
+                title=f"🎲 Random Taak voor\n {interaction.user.display_name}:",
                 description=taak,
                 color=discord.Color.purple()
             )
