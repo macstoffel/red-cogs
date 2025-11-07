@@ -152,7 +152,7 @@ class Woordspel(commands.Cog):
         self.last_user_id = message.author.id
 
         await message.channel.send(embed=self.make_embed(
-            description=f"✅ {message.author.display_name} heeft het woord `{content}` getypt!\nStart het volgende woord met de laatste letter"
+            description=f"✅ {message.author.display_name} heeft het woord `{content}` getypt!\nStart het volgende woord met de laatste letter\n"
                         f"Huidige score: {self.current_score}\nDoel: {self.goal_points}"
         ))
 
