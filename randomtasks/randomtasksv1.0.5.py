@@ -89,13 +89,7 @@ class RandomTasks(commands.Cog):
             description=f"Taken opgeslagen voor **{ctx.guild.name}**.\nKies een optie.",
             color=discord.Color.purple()
         )
-        # Toon volledige GUI alleen voor moderators of hoger; normale gebruikers zien alleen de
-        # knop voor "Random Taak".
-        if self._is_mod(ctx.author):
-            view = self.PersistentTaskView(self)
-        else:
-            view = self.PublicTaskView(self)
-        await ctx.send(embed=embed, view=view)
+        await ctx.send(embed=embed, view=self.PersistentTaskView(self))
 
     # ✅ PERSISTENT VIEW — timeout=None + custom_ids + herladen bij restart
     class PersistentTaskView(View):
@@ -181,27 +175,6 @@ class RandomTasks(commands.Cog):
                 color=discord.Color.purple()
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    # Public view: alleen de Random Taak knop zichtbaar voor normale gebruikers
-    class PublicTaskView(View):
-        def __init__(self, parent_cog):
-            super().__init__(timeout=None)
-            self.cog = parent_cog
-
-        @discord.ui.button(label="🎲 Random Taak", style=discord.ButtonStyle.primary, custom_id="task_random_public")
-        async def random_task(self, interaction: discord.Interaction, button):
-            tasks = await self.cog.get_tasks(interaction.guild.id)
-            if not tasks:
-                return await interaction.response.send_message("Geen taken beschikbaar.", ephemeral=True)
-            taak = random.choice(tasks)
-            embed = discord.Embed(
-                title=f"🎲 Random Taak voor\n {interaction.user.display_name}:",
-                description=taak,
-                color=discord.Color.purple()
-            )
-            await interaction.channel.send(embed=embed, delete_after=60)
-            await interaction.response.defer(ephemeral=True)
-            await self.cog._log_assignment(interaction.guild, interaction.user, taak, interaction.channel)
 
     # --- Extra commands blijven hetzelfde ---
     @commands.guild_only()
