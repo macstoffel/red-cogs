@@ -54,3 +54,11 @@
 - Scoretracking en highscore.  
 - Doelpunten instelbaar.  
 - Alleen in het ingestelde kanaal actief.  
+
+---
+
+## Dependancies
+
+- sudo apt install enchant-2
+- sudo apt install myspell-nl
+- pip install pyenchant (beware of the venv you're in)
