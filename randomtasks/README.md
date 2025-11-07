@@ -1,40 +1,36 @@
 # RandomTasks - Redbot Cog (GUI & Per-server taken)
 
-**RandomTasks** is een Redbot-cog die per-server (guild) lijsten met taken beheert en gebruikers via een interactieve, paarse embed (knoppen) een willekeurige taak laat kiezen. Taken worden standaard geladen vanuit `taken.json`, maar iedere server heeft z'n eigen lijst in Redbot's Config.
+**RandomTasks** is een Redbot-cog die per-server (guild) lijsten met taken beheert en gebruikers via een interactieve, paarse embed (knoppen) een willekeurige taak laat kiezen. Taken worden standaard geladen vanuit `taken.json`, maar iedere server bewaart zijn eigen taken in een aparte JSON in `guild_data/`.
+
+---
+
+## Belangrijkste wijzigingen (recent)
+- Taken worden per guild in een eigen JSON-bestand bewaard: `guild_data/<guildid>_tasks.json`.
+- Per-guild custom titel voor de GUI embed mogelijk (`[p]taaktitleset`).
+- Persistent Views gebruikt zodat knoppen blijven werken na bot-restart.
+- Alleen moderators of hoger zien knoppen voor beheer (taak toevoegen/verwijderen/lijst); normale gebruikers zien alleen de knop voor een Random Taak.
+- Optionele logging per guild: stel met `[p]taaklogset #kanaal` een logkanaal in. Logbericht bevat wie welke taak kreeg (display name + id), taaktekst, kanaal en timestamp.
+- Geen extra bevestiging meer in kanaal bij toewijzing; gebruiker krijgt zijn taak (ephemeral/embed) en er wordt stil gelogd indien ingesteld.
 
 ---
 
 ## Features
-- Per-server (guild) takenlijsten.
+- Per-server (guild) takenlijsten, persistente opslag per guild.
 - GUI-achtige embed met knoppen:
-  - 🎲 Random Taak (ephemeral) — iedereen kan een taak opvragen.
-  - ➕ Taak toevoegen — alleen moderators of hoger.
-  - 🗑 Taak verwijderen — alleen moderators of hoger.
-  - 📋 Takenlijst — alleen moderators of hoger.
-- Beheerbare taken via zowel GUI als tekstcommando's.
-- Logging: moderator kan een logkanaal instellen; toewijzingen worden daar gelogd (wie welke taak kreeg, vanuit welk kanaal, timestamp).
-- Standaardtaken in `taken.json`.
-- Paarse embeds voor stijlconsistentie.
-
----
-
-## Vereisten
-- Red-DiscordBot (Red) — compatibel met recente versies.
-- Python 3.8+
-- Bot heeft benodigde intents & permissies (send messages, embed links, use interactions).
+  - 🎲 Random Taak — iedereen.
+  - ➕ Taak toevoegen — alleen moderators of hoger (zichtbaar alleen voor mods).
+  - 🗑 Taak verwijderen — alleen moderators of hoger (zichtbaar alleen voor mods).
+  - 📋 Takenlijst — alleen moderators of hoger (zichtbaar alleen voor mods).
+- Tekstcommando’s voor admins/mods om snel te beheren.
+- Logging: toewijzingen worden in het ingestelde logkanaal gelogd met gebruiker, taak, kanaal en tijd.
+- Standaardtaken in `taken.json` (gebruikt als seed).
+- Paarse, consistente embeds en ephemeral responses voor de GUI.
 
 ---
 
 ## Installatie (kort)
-1. Voeg de repo toe aan Red:
-```
-[p]repo add MacStoffel https://github.com/MacStoffel/redcogs
-```
-2. Installeer de cog:
-```
-[p]cog install MacStoffel randomtasks
-```
-3. Laad de cog:
+1. Voeg de repo toe aan Red en installeer de cog.
+2. Laad de cog:
 ```
 [p]load randomtasks
 ```
@@ -42,59 +38,55 @@
 ---
 
 ## Commando's & rechten
-Let op: `[p]` is de bot-prefix; vervang indien anders. Sommige commando's zijn beperkt tot moderators of hoger.
+Let op: `[p]` is de bot-prefix; vervang indien anders.
 
+Publieke commando's
 - `[p]taak`  
-  Geeft een random taak (embed). Iedereen kan dit gebruiken. Toewijzingen worden, indien geconfigureerd, gelogd.
+  Geeft een random taak (embed). Iedereen kan dit gebruiken.
 
+GUI
 - `[p]taakgui`  
-  Opent de interactieve GUI-embed met knoppen. Veel interacties zijn ephemeral (zichtbaar alleen voor de gebruiker).
+  Opent de interactieve GUI. Moderators zien alle knoppen; normale gebruikers zien enkel "Random Taak".
 
-- Administratie (vereist moderator of hoger via cog-perms of Red admin):
-  - `[p]taakadd <tekst>`  
- Voeg een taak toe (moderator of hoger).
-  - `[p]taakremove <nummer>`  
- Verwijder een taak op nummer (moderator of hoger).
-  - `[p]taaklist`  
- Toont de takenlijst in een embed (moderator of hoger).
-  - `[p]taaklogset [#kanaal]`  
- Stel het logkanaal in voor taak-toewijzingen. Laat leeg om uit te schakelen. (administrator/manage_guild required)
-
-- GUI-beheer (gebruikersinterface):
-  - Knoppen voor toevoegen/verwijderen/list zijn beveiligd: alleen moderators of hoger kunnen deze acties uit voeren via de GUI; anderen krijgen een melding dat ze geen toegang hebben.
-
----
-
-## taken.json
-`taken.json` bevat een object met een `tasks`-array:
-
-```json
-{
-  "tasks": [
-    "Drink een glas water",
-    "Doe 10 push-ups",
-    "Neem 2 minuten pauze",
-    "Stuur iemand een compliment"
-  ]
-}
-```
-
-Bij eerste keer gebruik krijgt een server de standaardtaken toegewezen als er nog geen server-specifieke taken aanwezig zijn in Config.
+Moderatie / configuratie (moderator of hoger / manage_guild voor sommige commands)
+- `[p]taakadd <tekst>`  
+  Voeg snel een taak toe (moderator of hoger).
+- `[p]taakremove <nummer>`  
+  Verwijder een taak op nummer (moderator of hoger).
+- `[p]taaklist`  
+  Toont de takenlijst (moderator of hoger).
+- `[p]taaklogset [#kanaal]`  
+  Stel het logkanaal in voor taak-toewijzingen. Laat leeg om uit te schakelen.
+- `[p]taaktitleset [titel tekst]`  
+  Stel een custom titel voor de GUI embed per guild. Laat leeg om de standaardtitel te herstellen.
 
 ---
 
-## Opmerkingen & tips
-- De GUI maakt gebruik van `discord.ui.View` en ephemeral responses zodat interacties niet het kanaal vervuilen.
+## Bestandslocaties / persistentie
+- Globale standaards: `taken.json`
+- Per-guild persistent tasks: `guild_data/<guildid>_tasks.json`
+  - Deze bestanden worden automatisch aangemaakt en bijgewerkt bij bewerkingen.
+- Config keys (per guild) bevatten: `log_channel_id`, `custom_title` (en worden gebruikt naast de per-guild JSON).
+
+---
+
+## Logging
+- Stel het logkanaal in met `[p]taaklogset #kanaal`.
+- Logs bevatten:
+  - Gebruiker: display name + (id)
+  - Taak: volledige taaktekst
+  - Kanaal: waar de taak werd aangevraagd
+  - Timestamp (UTC)
+- Logging is best-effort; indien permissies ontbreken of kanaal verdwenen is, faalt logging stil.
+
+---
+
+## Gedragsnotities & tips
+- Knoppen voor toevoegen/verwijderen/lijst zijn onzichtbaar voor normale gebruikers; dit voorkomt verwarring en verkleint misbruik.
+- Random taak wordt als embed in het kanaal geplaatst (optioneel auto-delete na korte tijd) en moderators kunnen dit via logs terugzien.
+- Voor herstel/migratie van data of bulk-export van guild files kun je admin-commands toevoegen; vraag ernaar als je dat wilt.
 
 ---
 
 ## Licentie
 MIT License — vrij te gebruiken en te wijzigen. Voeg je eigen naam en licentie-informatie toe voordat je de repo publiek maakt.
-
----
-
-## Veelvoorkomende problemen
-- *Knoppen werken niet / bot reageert niet*: controleer dat de bot online is en dat `intents` en benodigde permissies zijn ingeschakeld. Red moet ook up-to-date zijn.
-- *Taken verdwijnen*: taken worden opgeslagen in Red's Config; zorg dat je Red-config niet gewist wordt. `taken.json` is alleen de bron van standaards.
-
----
