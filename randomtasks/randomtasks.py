@@ -103,7 +103,7 @@ class RandomTasks(commands.Cog):
             taak = random.choice(tasks)
 
             embed = discord.Embed(
-                title="🎲 Random Taak voor\n {user.mention}:"",
+                title="🎲 Random Taak voor\n {user.mention}:",
                 description=taak,
                 color=discord.Color.purple()
             )
