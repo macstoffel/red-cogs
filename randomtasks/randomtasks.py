@@ -12,7 +12,6 @@ class RandomTasks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=987654322)
-        # per-guild settings: tasks list + optional logging channel id
         self.config.register_guild(tasks=[], log_channel_id=None)
         self.data_path = Path(__file__).parent / "taken.json"
 
@@ -23,6 +22,10 @@ class RandomTasks(commands.Cog):
         else:
             self.default_tasks = []
 
+        # ✅ Maak de GUI persistent (blijft werken bij bot-restart)
+        # Door custom_ids te gebruiken op buttons kan Discord interacties blijven routeren.
+        bot.add_view(self.PersistentTaskView(self))
+
     async def get_tasks(self, guild_id):
         tasks = await self.config.guild_from_id(guild_id).tasks()
         if not tasks:
@@ -31,7 +34,6 @@ class RandomTasks(commands.Cog):
         return tasks
 
     def _is_mod(self, member: discord.Member) -> bool:
-        """Basic moderator-or-higher check: admin or common mod perms."""
         perms = member.guild_permissions
         return bool(
             perms.administrator
@@ -40,12 +42,10 @@ class RandomTasks(commands.Cog):
             or perms.manage_messages
             or perms.manage_roles
         )
-    
+
     async def _log_assignment(self, guild: discord.Guild, user: discord.Member, task: str, ctx_channel: discord.TextChannel = None):
-        """If a log channel is configured for the guild, post who got which task."""
         try:
-            gid = guild.id
-            log_chan_id = await self.config.guild_from_id(gid).log_channel_id()
+            log_chan_id = await self.config.guild(guild).log_channel_id()
             if not log_chan_id:
                 return
             ch = guild.get_channel(int(log_chan_id))
@@ -62,10 +62,9 @@ class RandomTasks(commands.Cog):
                 embed.add_field(name="Aangevraagd in", value=f"{ctx_channel.mention} ({ctx_channel.id})", inline=False)
             await ch.send(embed=embed)
         except Exception:
-            # don't raise—logging is best-effort
             return
 
-
+    # ✅ Random taak via command, verdwijnt na 60s
     @commands.command()
     async def taak(self, ctx):
         tasks = await self.get_tasks(ctx.guild.id)
@@ -76,108 +75,109 @@ class RandomTasks(commands.Cog):
             color=discord.Color.purple()
         )
         embed.set_footer(text=f"Aangevraagd door {ctx.author}")
-        await ctx.send(embed=embed)
-        # log assignment if configured
+
+        msg = await ctx.send(embed=embed, delete_after=60)
         await self._log_assignment(ctx.guild, ctx.author, taak, ctx.channel)
 
+    # ✅ Hoofd-GUI command (persistent view)
     @commands.command()
     async def taakgui(self, ctx):
-        tasks = await self.get_tasks(ctx.guild.id)
         embed = discord.Embed(
             title="📌 Taken Manager (Server)",
             description=f"Taken opgeslagen voor **{ctx.guild.name}**.\nKies een optie.",
             color=discord.Color.purple()
         )
+        await ctx.send(embed=embed, view=self.PersistentTaskView(self))
 
-        class TaskView(View):
-            def __init__(self, parent_cog):
-                super().__init__(timeout=120)
-                self.cog = parent_cog
+    # ✅ PERSISTENT VIEW — timeout=None + custom_ids + herladen bij restart
+    class PersistentTaskView(View):
+        def __init__(self, parent_cog):
+            super().__init__(timeout=None)  # ✅ oneindig actief
+            self.cog = parent_cog
 
-            @discord.ui.button(label="🎲 Random Taak", style=discord.ButtonStyle.primary)
-            async def random_task(self, interaction: discord.Interaction, button: Button):
-                tasks = await self.cog.get_tasks(interaction.guild.id)
-                if not tasks:
-                    return await interaction.response.send_message("Geen taken beschikbaar.", ephemeral=True)
-                taak = random.choice(tasks)
-                embed = discord.Embed(
-                    title="🎲 Random Taak",
-                    description=taak,
-                    color=discord.Color.purple()
-                )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
-                # log assignment
-                await self.cog._log_assignment(interaction.guild, interaction.user, taak, interaction.channel)
+        @discord.ui.button(label="🎲 Random Taak", style=discord.ButtonStyle.primary, custom_id="task_random_button")
+        async def random_task(self, interaction: discord.Interaction, button):
+            tasks = await self.cog.get_tasks(interaction.guild.id)
+            if not tasks:
+                return await interaction.response.send_message("Geen taken beschikbaar.", ephemeral=True)
+            taak = random.choice(tasks)
 
-            @discord.ui.button(label="➕ Taak toevoegen", style=discord.ButtonStyle.success)
-            async def add_task(self, interaction: discord.Interaction, button: Button):
-                # only moderators or higher may add
-                if not self.cog._is_mod(interaction.user):
-                    return await interaction.response.send_message("❌ Alleen moderators of hoger mogen taken beheren.", ephemeral=True)
+            embed = discord.Embed(
+                title="🎲 Random Taak",
+                description=taak,
+                color=discord.Color.purple()
+            )
 
-                await interaction.response.send_message("Voer de taak in om toe te voegen:")
+            # ✅ Bericht zichtbaar voor iedereen, maar auto-delete na 60s
+            msg = await interaction.channel.send(embed=embed, delete_after=60)
 
-                def check(m):
-                    return m.author == interaction.user and m.channel == interaction.channel
+            await interaction.response.send_message("✅ Taak verstuurd!", ephemeral=True)
+            await self.cog._log_assignment(interaction.guild, interaction.user, taak, interaction.channel)
 
-                msg = await self.cog.bot.wait_for("message", check=check)
-                tasks = await self.cog.get_tasks(interaction.guild.id)
-                tasks.append(msg.content)
-                await self.cog.config.guild(interaction.guild).tasks.set(tasks)
-                await interaction.followup.send(f"✅ Taak toegevoegd: **{msg.content}**", ephemeral=True)
+        @discord.ui.button(label="➕ Taak toevoegen", style=discord.ButtonStyle.success, custom_id="task_add_button")
+        async def add_task(self, interaction: discord.Interaction, button):
+            if not self.cog._is_mod(interaction.user):
+                return await interaction.response.send_message("❌ Alleen moderators of hoger kunnen taken toevoegen.", ephemeral=True)
 
-            @discord.ui.button(label="🗑 Taak verwijderen", style=discord.ButtonStyle.danger)
-            async def remove_task(self, interaction: discord.Interaction, button: Button):
-                # only moderators or higher may remove
-                if not self.cog._is_mod(interaction.user):
-                    return await interaction.response.send_message("❌ Alleen moderators of hoger mogen taken verwijderen.", ephemeral=True)
+            await interaction.response.send_message("Voer de taak in om toe te voegen:")
 
-                tasks = await self.cog.get_tasks(interaction.guild.id)
-                if not tasks:
-                    return await interaction.response.send_message("Geen taken om te verwijderen.", ephemeral=True)
+            def check(m):
+                return m.author == interaction.user and m.channel == interaction.channel
 
-                lijst = "\n".join([f"{i+1}. {t}" for i, t in enumerate(tasks)])
-                await interaction.response.send_message(f"Welke wil je verwijderen?\n{lijst}\nTyp het nummer:")
+            msg = await self.cog.bot.wait_for("message", check=check)
+            tasks = await self.cog.get_tasks(interaction.guild.id)
+            tasks.append(msg.content)
+            await self.cog.config.guild(interaction.guild).tasks.set(tasks)
 
-                def check(m):
-                    return m.author == interaction.user and m.channel == interaction.channel
+            await interaction.followup.send(f"✅ Taak toegevoegd: **{msg.content}**", ephemeral=True)
 
-                msg = await self.cog.bot.wait_for("message", check=check)
+        @discord.ui.button(label="🗑 Taak verwijderen", style=discord.ButtonStyle.danger, custom_id="task_remove_button")
+        async def remove_task(self, interaction: discord.Interaction, button):
+            if not self.cog._is_mod(interaction.user):
+                return await interaction.response.send_message("❌ Alleen moderators of hoger kunnen taken verwijderen.", ephemeral=True)
 
-                try:
-                    index = int(msg.content) - 1
-                    removed = tasks.pop(index)
-                except:
-                    return await interaction.followup.send("❌ Ongeldig nummer.", ephemeral=True)
+            tasks = await self.cog.get_tasks(interaction.guild.id)
+            if not tasks:
+                return await interaction.response.send_message("Geen taken om te verwijderen.", ephemeral=True)
 
-                await self.cog.config.guild(interaction.guild).tasks.set(tasks)
-                await interaction.followup.send(f"🗑 Verwijderd: **{removed}**", ephemeral=True)
+            lijst = "\n".join([f"{i+1}. {t}" for i, t in enumerate(tasks)])
+            await interaction.response.send_message(f"Welke wil je verwijderen?\n{lijst}\nTyp het nummer:")
 
-            @discord.ui.button(label="📋 Takenlijst", style=discord.ButtonStyle.secondary)
-            async def list_tasks(self, interaction: discord.Interaction, button: Button):
-                # only moderators or higher may view the list
-                if not self.cog._is_mod(interaction.user):
-                    return await interaction.response.send_message("❌ Alleen moderators of hoger mogen de takenlijst inzien.", ephemeral=True)
+            def check(m):
+                return m.author == interaction.user and m.channel == interaction.channel
 
-                tasks = await self.cog.get_tasks(interaction.guild.id)
-                if not tasks:
-                    return await interaction.response.send_message("Geen taken!", ephemeral=True)
+            msg = await self.cog.bot.wait_for("message", check=check)
 
-                embed = discord.Embed(
-                    title=f"📋 Takenlijst — {interaction.guild.name}",
-                    description="\n".join([f"- {t}" for t in tasks]),
-                    color=discord.Color.purple()
-                )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+            try:
+                index = int(msg.content) - 1
+                removed = tasks.pop(index)
+            except:
+                return await interaction.followup.send("❌ Ongeldig nummer.", ephemeral=True)
 
-        await ctx.send(embed=embed, view=TaskView(self))
+            await self.cog.config.guild(interaction.guild).tasks.set(tasks)
+            await interaction.followup.send(f"🗑 Verwijderd: **{removed}**", ephemeral=True)
 
-    # --- Moderation / config commands ---
+        @discord.ui.button(label="📋 Takenlijst", style=discord.ButtonStyle.secondary, custom_id="task_list_button")
+        async def list_tasks(self, interaction: discord.Interaction, button):
+            if not self.cog._is_mod(interaction.user):
+                return await interaction.response.send_message("❌ Alleen moderators of hoger mogen de takenlijst zien.", ephemeral=True)
+
+            tasks = await self.cog.get_tasks(interaction.guild.id)
+            if not tasks:
+                return await interaction.response.send_message("Geen taken!", ephemeral=True)
+
+            embed = discord.Embed(
+                title=f"📋 Takenlijst — {interaction.guild.name}",
+                description="\n".join([f"- {t}" for t in tasks]),
+                color=discord.Color.purple()
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # --- Extra commands blijven hetzelfde ---
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
     async def taaklogset(self, ctx, channel: discord.TextChannel = None):
-        """Stel het kanaal in waar taak-toewijzingen gelogd worden. Laat leeg om te verwijderen."""
         await self.config.guild(ctx.guild).log_channel_id.set(channel.id if channel else None)
         await ctx.send(f"✅ Logkanaal ingesteld: {channel.mention if channel else 'Geen (uit)'}")
 
@@ -185,7 +185,6 @@ class RandomTasks(commands.Cog):
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
     async def taakadd(self, ctx, *, taak_text: str):
-        """Voeg snel een taak toe (moderator of hoger)."""
         if not self._is_mod(ctx.author):
             return await ctx.send("❌ Alleen moderators of hoger mogen taken beheren.")
         tasks = await self.get_tasks(ctx.guild.id)
@@ -197,7 +196,6 @@ class RandomTasks(commands.Cog):
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
     async def taakremove(self, ctx, index: int):
-        """Verwijder een taak op nummer (moderator of hoger). Gebruik [p]taaklist om nummers te zien."""
         if not self._is_mod(ctx.author):
             return await ctx.send("❌ Alleen moderators of hoger mogen taken beheren.")
         tasks = await self.get_tasks(ctx.guild.id)
@@ -211,7 +209,6 @@ class RandomTasks(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def taaklist(self, ctx):
-        """Toon de takenlijst (alleen moderators of hoger)."""
         if not self._is_mod(ctx.author):
             return await ctx.send("❌ Alleen moderators of hoger mogen de takenlijst inzien.")
         tasks = await self.get_tasks(ctx.guild.id)
@@ -224,6 +221,6 @@ class RandomTasks(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-# module setup
+
 async def setup(bot):
     await bot.add_cog(RandomTasks(bot))
