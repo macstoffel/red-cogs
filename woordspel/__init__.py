@@ -1,4 +1,4 @@
 from .woordspel import Woordspel
 
-def setup(bot):
-    bot.add_cog(Woordspel(bot))
+async def setup(bot):
+    await bot.add_cog(Woordspel(bot))
