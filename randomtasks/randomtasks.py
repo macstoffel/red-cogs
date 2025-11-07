@@ -70,7 +70,7 @@ class RandomTasks(commands.Cog):
         tasks = await self.get_tasks(ctx.guild.id)
         taak = random.choice(tasks)
         embed = discord.Embed(
-            title="🎲 Random Taak voor\n {user.mention}:",
+            title=f"🎲 Random Taak voor\n {ctx.author.mention}:",
             description=taak,
             color=discord.Color.purple()
         )
@@ -103,15 +103,15 @@ class RandomTasks(commands.Cog):
             taak = random.choice(tasks)
 
             embed = discord.Embed(
-                title="🎲 Random Taak voor\n {user.mention}:",
+                title=f"🎲 Random Taak voor\n {interaction.user.mention}:",
                 description=taak,
                 color=discord.Color.purple()
             )
 
             # ✅ Bericht zichtbaar voor iedereen, maar auto-delete na 60s
-            msg = await interaction.channel.send(embed=embed, delete_after=60)
+            #msg = await interaction.channel.send(embed=embed, delete_after=60)
 
-            await interaction.response.send_message("✅ Taak verstuurd!", ephemeral=True)
+            #await interaction.response.send_message("✅ Taak verstuurd!", ephemeral=True)
             await self.cog._log_assignment(interaction.guild, interaction.user, taak, interaction.channel)
 
         @discord.ui.button(label="➕ Taak toevoegen", style=discord.ButtonStyle.success, custom_id="task_add_button")
