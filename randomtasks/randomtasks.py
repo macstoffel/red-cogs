@@ -113,7 +113,7 @@ class RandomTasks(commands.Cog):
             # ✅ Bericht zichtbaar voor iedereen, maar auto-delete na 60s
             msg = await interaction.channel.send(embed=embed, delete_after=60)
 
-            #await interaction.response.send_message("✅ Taak verstuurd!", ephemeral=True)
+            await interaction.response.send_message("✅ Taak verstuurd!", ephemeral=True)
             await self.cog._log_assignment(interaction.guild, interaction.user, taak, interaction.channel)
 
         @discord.ui.button(label="➕ Taak toevoegen", style=discord.ButtonStyle.success, custom_id="task_add_button")
