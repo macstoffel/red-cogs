@@ -8,6 +8,7 @@ import datetime
 import os
 import logging
 from typing import Optional
+import asyncio
 
 class RandomTasks(commands.Cog):
     """Geeft random taken per server en beheert ze via een GUI."""
@@ -184,17 +185,32 @@ class RandomTasks(commands.Cog):
             if not self.cog._is_mod(interaction.user):
                 return await interaction.response.send_message("❌ Alleen moderators of hoger kunnen taken toevoegen.", ephemeral=True)
 
-            await interaction.response.send_message("Voer de taak in om toe te voegen:")
+            await interaction.response.send_message("Voer de taak in om toe te voegen (je hebt 120s):", ephemeral=True)
 
             def check(m):
                 return m.author == interaction.user and m.channel == interaction.channel
 
-            msg = await self.cog.bot.wait_for("message", check=check)
-            tasks = await self.cog.get_tasks(interaction.guild.id)
-            tasks.append(msg.content)
-            await self.cog.save_guild_tasks(interaction.guild.id, tasks)
+            try:
+                msg = await self.cog.bot.wait_for("message", check=check, timeout=120)
+            except asyncio.TimeoutError:
+                return await interaction.followup.send("⏱️ Time-out: taak toevoegen geannuleerd.", ephemeral=True)
 
-            await interaction.followup.send(f"✅ Taak toegevoegd: **{msg.content}**", ephemeral=True)
+            task_text = msg.content.strip()
+            if not task_text:
+                return await interaction.followup.send("❌ Lege taak, afgebroken.", ephemeral=True)
+
+            tasks = await self.cog.get_tasks(interaction.guild.id)
+            tasks.append(task_text)
+            ok = await self.cog.save_guild_tasks(interaction.guild.id, tasks)
+            if not ok:
+                # probeer rollback in-memory
+                try:
+                    tasks.pop()
+                except Exception:
+                    pass
+                return await interaction.followup.send("❌ Opslaan mislukt — bekijk botlogs.", ephemeral=True)
+
+            await interaction.followup.send(f"✅ Taak toegevoegd: **{task_text}**", ephemeral=True)
 
         @discord.ui.button(label="🗑 Taak verwijderen", style=discord.ButtonStyle.danger, custom_id="task_remove_button")
         async def remove_task(self, interaction: discord.Interaction, button):
@@ -206,20 +222,33 @@ class RandomTasks(commands.Cog):
                 return await interaction.response.send_message("Geen taken om te verwijderen.", ephemeral=True)
 
             lijst = "\n".join([f"{i+1}. {t}" for i, t in enumerate(tasks)])
-            await interaction.response.send_message(f"Welke wil je verwijderen?\n{lijst}\nTyp het nummer:")
+            await interaction.response.send_message(f"Welke wil je verwijderen?\n{lijst}\nTyp het nummer (120s):", ephemeral=True)
 
             def check(m):
                 return m.author == interaction.user and m.channel == interaction.channel
 
-            msg = await self.cog.bot.wait_for("message", check=check)
+            try:
+                msg = await self.cog.bot.wait_for("message", check=check, timeout=120)
+            except asyncio.TimeoutError:
+                return await interaction.followup.send("⏱️ Time-out: verwijderen geannuleerd.", ephemeral=True)
 
             try:
                 index = int(msg.content) - 1
+                if index < 0 or index >= len(tasks):
+                    raise ValueError("out of range")
                 removed = tasks.pop(index)
-            except:
+            except Exception:
                 return await interaction.followup.send("❌ Ongeldig nummer.", ephemeral=True)
 
-            await self.cog.save_guild_tasks(interaction.guild.id, tasks)
+            ok = await self.cog.save_guild_tasks(interaction.guild.id, tasks)
+            if not ok:
+                # rollback
+                try:
+                    tasks.insert(index, removed)
+                except Exception:
+                    pass
+                return await interaction.followup.send("❌ Opslaan mislukt — wijzigingen niet doorgevoerd.", ephemeral=True)
+
             await interaction.followup.send(f"🗑 Verwijderd: **{removed}**", ephemeral=True)
 
         @discord.ui.button(label="📋 Takenlijst", style=discord.ButtonStyle.secondary, custom_id="task_list_button")
