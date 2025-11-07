@@ -318,15 +318,35 @@ class RandomTasks(commands.Cog):
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
+    async def taakshowfile(self, ctx):
+        """Debug: toon pad en (gedeeltelijke) inhoud van guild task-file."""
+        path = self._guild_tasks_file(ctx.guild.id)
+        exists = path.exists()
+        msg = f"Pad: `{path}`\nBestaat: `{exists}`\n\n"
+        if exists:
+            try:
+                txt = path.read_text(encoding="utf-8")
+                # trim lange bestanden
+                if len(txt) > 1900:
+                    txt = txt[:1900] + "\n\n...[truncated]..."
+                msg += f"**Inhoud:**\n```json\n{txt}\n```"
+            except Exception as e:
+                msg += f"Fout bij lezen: {e}"
+        await ctx.send(msg)
+
+    @commands.guild_only()
+    @commands.admin_or_permissions(manage_guild=True)
+    @commands.command()
     async def taakdebugsave(self, ctx):
-        """Forceert opslaan van de huidige takenlijst naar guild_data en toont pad / resultaat."""
+        """Forceer opslaan en rapporteer bestandspad / success. (uitgebreide debug)"""
         tasks = await self.get_tasks(ctx.guild.id)
         ok = await self.save_guild_tasks(ctx.guild.id, tasks)
         path = self._guild_tasks_file(ctx.guild.id)
-        if ok:
-            await ctx.send(f"✅ Tasks opgeslagen: `{path}`")
+        if ok and path.exists():
+            await ctx.send(f"✅ Tasks opgeslagen: `{path}` (size: {path.stat().st_size} bytes)")
         else:
-            await ctx.send("❌ Opslaan mislukt — bekijk bot logs voor details.")
+            # probeer last logger entries te tonen (als beschikbaar)
+            await ctx.send("❌ Opslaan mislukt — check bot logs. Controleer permissies en pad.")
 
 
 async def setup(bot):

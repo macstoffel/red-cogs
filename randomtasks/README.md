@@ -60,6 +60,12 @@ Moderatie / configuratie (moderator of hoger / manage_guild voor sommige command
 - `[p]taaktitleset [titel tekst]`  
   Stel een custom titel voor de GUI embed per guild. Laat leeg om de standaardtitel te herstellen.
 
+Debug / admin commands
+- `[p]taakdebugsave`  
+  Forceert opslaan van de huidige takenlijst naar `guild_data/<guildid>_tasks.json` en toont het pad / resultaat. (admin/manage_guild)
+- `[p]taakshowfile`  
+  Toont het pad en (gedeeltelijke) inhoud van het per-guild task-file voor debug-doeleinden. (admin/manage_guild)
+
 ---
 
 ## Bestandslocaties / persistentie
