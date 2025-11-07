@@ -1,0 +1,11 @@
+{
+  "name": "Woordspel",
+  "display_name": "Woordspel",
+  "author": "MacStoffel",
+  "description": "Een woordketting spel voor Discord met scoretracking en embeds in paarse tinten.",
+  "install_msg": "Dank je voor het installeren van Woordspel! Gebruik `[p]start` om te beginnen.",
+  "requirements": [],
+  "tags": ["game", "woordspel", "discord", "fun"],
+  "hidden": false,
+  "min_red_version": "3.5.0"
+}
