@@ -1,0 +1,8 @@
+{
+    "author": ["MacStoffel"],
+    "name": "woordspel_td",
+    "install_msg": "✅ Woordspel_TD v2 geïnstalleerd! Vergeet niet: `pip install pyenchant` + Nederlandse dictionaries.",
+    "short": "Een uitgebreid woordspel met taken en JSON-opslag",
+    "description": "Versie 2 van het woordspel: woordenketting, scores, takenlijst (veilig, speels), opslaan welke gebruiker welk woord gebruikte, en JSON-data opslag.",
+    "tags": ["game", "woorden", "json", "fun"]
+}

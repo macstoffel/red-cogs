@@ -1,0 +1,19 @@
+{
+    "tasks": [
+        {
+            "id": 1,
+            "text": "Schrijf een kort speels verhaaltje over een ondeugende ontmoeting in een speelgoedwinkel (alleen speelgoed, geen echte personen).",
+            "added_by": "system"
+        },
+        {
+            "id": 2,
+            "text": "Zoek op internet een grappige foto van volwassen speelgoed (geen personen, alleen objecten) en deel die in het kanaal.",
+            "added_by": "system"
+        },
+        {
+            "id": 3,
+            "text": "Vertel een ondeugende mop die geschikt zou zijn voor +18 maar zonder schuttingwoorden.",
+            "added_by": "system"
+        }
+    ]
+}
