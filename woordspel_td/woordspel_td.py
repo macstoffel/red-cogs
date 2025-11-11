@@ -402,7 +402,7 @@ class WoordspelTD(commands.Cog):
         try:
             await message.channel.send(embed=self.make_embed(
                 title="⏸️ Spel gepauzeerd",
-                description=f"Het spel is gepauzeerd tot de taak is uitgevoerd door: {message.author.mention}"
+                description=f"Het spel is gepauzeerd tot de taak is uitgevoerd door: {message.author.mention}\nDe taak dient uitgevoerd te worden in {task_channel.mention}."
             ))
         except Exception:
             pass
