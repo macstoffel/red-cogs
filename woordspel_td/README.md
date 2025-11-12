@@ -59,6 +59,10 @@ Spelbeheer
 Woorden & controle
 - `[p]woordspel_td used <woord>`  
   Toon wie een woord eerder gebruikte.
+- `[p]woordspel_td setreuse <True|False>`  
+  Schakel per-guild of het gebruik van eerder gebruikte woorden is toegestaan. Standaard: `False` (hergebruik NIET toegestaan).  
+  - Voorbeeld: `[p]woordspel_td setreuse True` (staat hergebruik toe)  
+  - Instelling wordt opgeslagen in `settings.json` onder de guild key.
 
 Taken & instellingen
 - `[p]woordspel_td task`  

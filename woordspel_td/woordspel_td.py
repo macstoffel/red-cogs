@@ -81,6 +81,22 @@ class WoordspelTD(commands.Cog):
         with open(self.settings_file, "w", encoding="utf-8") as f:
             json.dump(self.settings, f, indent=4)
 
+    # Per-guild helper: check whether reused words are allowed (default: False = reuse not allowed)
+    def _allow_reuse(self, guild_id: int) -> bool:
+        return bool(self.settings.get(str(guild_id), {}).get("allow_reuse", False))
+
+    @checks.mod_or_permissions(administrator=True)
+    @woordspel_td.command(name="setreuse")
+    async def setreuse(self, ctx, allow: bool):
+        """Schakel het gebruik van eerder gebruikte woorden in/uit per guild.
+        Gebruik `True` om hergebruik toe te staan, `False` om het te verbieden (standaard)."""
+        gid = str(ctx.guild.id)
+        cfg = self.settings.get(gid, {})
+        cfg["allow_reuse"] = bool(allow)
+        self.settings[gid] = cfg
+        self._save_settings()
+        await ctx.send(embed=self.make_embed(description=f"✅ Allow reuse set to `{cfg['allow_reuse']}` for this guild."))
+
     # ---------- spel state ----------
     def _get_state(self, guild_id: int) -> dict:
         return self.games.setdefault(guild_id, {
@@ -293,7 +309,8 @@ class WoordspelTD(commands.Cog):
 
         # check op eerder gebruikt woord
         used = self.words["used_words"].get(content)
-        if used:
+        # respect per-guild setting: als hergebruik is toegestaan, skip de penalty/check
+        if used and not self._allow_reuse(message.guild.id):
             user = message.guild.get_member(used)
             mention = user.display_name if user else "Onbekend"
             await message.channel.send(embed=self.make_embed(
