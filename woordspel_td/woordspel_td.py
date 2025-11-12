@@ -86,7 +86,7 @@ class WoordspelTD(commands.Cog):
         return bool(self.settings.get(str(guild_id), {}).get("allow_reuse", False))
 
     @checks.mod_or_permissions(administrator=True)
-    @woordspel_td.command(name="setreuse")
+    @commands.command(name="setreuse")
     async def setreuse(self, ctx, allow: bool):
         """Schakel het gebruik van eerder gebruikte woorden in/uit per guild.
         Gebruik `True` om hergebruik toe te staan, `False` om het te verbieden (standaard)."""
