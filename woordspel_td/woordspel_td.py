@@ -374,9 +374,101 @@ class WoordspelTD(commands.Cog):
         # notify in game channel and then give a task
         if required:
             title = "🔁 Fout beginletter — Spel gepauzeerd!"
-            desc = (f"❌ Het woord moest beginnen met `{required}`, maar `{message.content}` begint anders.\n\n"
-                    f"Het spel is gepauzeerd en wacht op een taak van {message.author.display_name}.\n\n"
-                    "Regels:\n"
-                    "- Typ een woord dat begint met de laatste letter van het vorige woord.\n"
-                    "- Je mag niet twee keer achter elkaar.\n"
-                    "- Typ geen meerdere woorden tegelijk!
+            desc = (
+                f"❌ Het woord moest beginnen met `{required}`, maar `{message.content}` begint anders.\n\n"
+                f"Het spel is gepauzeerd en wacht op een taak van {message.author.display_name}.\n\n"
+                "Regels:\n"
+                "- Typ een woord dat begint met de laatste letter van het vorige woord.\n"
+                "- Je mag niet twee keer achter elkaar.\n"
+                "- Typ geen meerdere woorden tegelijk!\n\n"
+                "De toegewezen taak moet uitgevoerd worden in het taak-kanaal."
+            )
+        else:
+            title = "🔁 Ongeldig woord — Spel gepauzeerd!"
+            desc = (
+                f"❌ `{message.content}` is geen geldig Nederlands woord! De score is aangepast.\n\n"
+                f"Het spel is gepauzeerd en wacht op een taak van {message.author.display_name}.\n\n"
+                "Regels:\n"
+                "- Typ een woord dat begint met de laatste letter van het vorige woord.\n"
+                "- Je mag niet twee keer achter elkaar.\n"
+                "- Typ geen meerdere woorden tegelijk!\n\n"
+                "De toegewezen taak moet uitgevoerd worden in het taak-kanaal."
+            )
+
+        await message.channel.send(embed=self.make_embed(title=title, description=desc))
+        await self._give_task(message, cause_word=message.content)
+
+    async def _give_task(self, message, cause_word: Optional[str] = None):
+        """Geef een taak aan de speler in het taak-kanaal."""
+        st = self._get_state(message.guild.id)
+        channel_id = self.settings.get(str(message.guild.id), {}).get("task_channel")
+        if not channel_id:
+            await message.channel.send(embed=self.make_embed(
+                description="⚠️ Geen taak-kanaal ingesteld. Vraag een moderator om dit in te stellen."
+            ))
+            return
+
+        channel = self.bot.get_channel(channel_id)
+        if not channel:
+            await message.channel.send(embed=self.make_embed(
+                description="⚠️ Ongeldig taak-kanaal. Vraag een moderator om dit te herstellen."
+            ))
+            return
+
+        assignee_id = st["task_assignee_id"]
+        assignee = message.guild.get_member(assignee_id)
+
+        # stuur taak in taak-kanaal
+        try:
+            await channel.send(embed=self.make_embed(
+                title="🎯 Nieuwe taak toegewezen!",
+                description=f"{assignee.display_name}, voer alsjeblieft de volgende taak uit:\n\n"
+                            f"**{st['task_text']}**\n\n"
+                            "Typ `klaar` als je de taak hebt voltooid."
+            ))
+        except Exception as e:
+            await message.channel.send(embed=self.make_embed(
+                description=f"⚠️ Kon geen taak verzenden in het taak-kanaal: {str(e)}"
+            ))
+
+        # pauzeer het spel totdat de taak is voltooid
+        st["cooldown"] = True
+        await message.channel.send(embed=self.make_embed(
+            description=f"⏸️ Het spel is gepauzeerd. {assignee.display_name} moet de toegewezen taak uitvoeren."
+        ))
+
+        # wacht op taak voltooiing of timeout (bijv. 300 seconden)
+        def check(m):
+            return m.author == assignee and m.channel == channel and m.content.lower() == "klaar"
+
+        try:
+            await self.bot.wait_for("message", check=check, timeout=300.0)
+            await channel.send(embed=self.make_embed(
+                description=f"✅ Taak voltooid door {assignee.display_name}!"
+            ))
+            st["cooldown"] = False
+            await message.channel.send(embed=self.make_embed(
+                description="▶️ Het spel is hervat! Typ een nieuw woord."
+            ))
+        except asyncio.TimeoutError:
+            await channel.send(embed=self.make_embed(
+                description=f"⏰ Taak niet op tijd voltooid door {assignee.display_name}. Strafpunt toegekend."
+            ))
+            st["cooldown"] = False
+            await message.channel.send(embed=self.make_embed(
+                description="▶️ Het spel is hervat! Typ een nieuw woord."
+            ))
+        except Exception as e:
+            await channel.send(embed=self.make_embed(
+                description=f"⚠️ Fout bij het wachten op taak-voltooiing: {str(e)}"
+            ))
+            st["cooldown"] = False
+            await message.channel.send(embed=self.make_embed(
+                description="▶️ Het spel is hervat! Typ een nieuw woord."
+            ))
+
+    def make_embed(self, title: str = None, description: str = None, color: int = 0x3498db):
+        """Maak een gestandaardiseerde embed voor berichten."""
+        embed = discord.Embed(title=title, description=description, color=color)
+        embed.set_footer(text="Woordspel_TD | Versie 2.1")
+        return embed
