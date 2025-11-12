@@ -87,15 +87,34 @@ class WoordspelTD(commands.Cog):
 
     @checks.mod_or_permissions(administrator=True)
     @commands.command(name="setreuse")
-    async def setreuse(self, ctx, allow: bool):
+    async def setreuse(self, ctx, allow: Optional[str] = None):
         """Schakel het gebruik van eerder gebruikte woorden in/uit per guild.
-        Gebruik `True` om hergebruik toe te staan, `False` om het te verbieden (standaard)."""
+        Gebruik true/false (of yes/no/on/off/1/0). Zonder argument toont de huidige instelling."""
         gid = str(ctx.guild.id)
         cfg = self.settings.get(gid, {})
-        cfg["allow_reuse"] = bool(allow)
+
+        if allow is None:
+            current = bool(cfg.get("allow_reuse", False))
+            return await ctx.send(embed=self.make_embed(
+                description=f"🔁 Huidige instelling: hergebruik is **{'ingeschakeld' if current else 'uitgeschakeld'}**."
+            ))
+
+        val = allow.strip().lower()
+        if val in ("true", "1", "yes", "y", "on"):
+            enabled = True
+        elif val in ("false", "0", "no", "n", "off"):
+            enabled = False
+        else:
+            return await ctx.send(embed=self.make_embed(
+                description="❌ Ongeldige waarde. Gebruik `true` of `false` (of yes/no/on/off/1/0)."
+            ))
+
+        cfg["allow_reuse"] = enabled
         self.settings[gid] = cfg
         self._save_settings()
-        await ctx.send(embed=self.make_embed(description=f"✅ Allow reuse set to `{cfg['allow_reuse']}` for this guild."))
+        await ctx.send(embed=self.make_embed(
+            description=f"✅ Hergebruik van eerder gebruikte woorden is nu **{'ingeschakeld' if enabled else 'uitgeschakeld'}**."
+        ))
 
     # ---------- spel state ----------
     def _get_state(self, guild_id: int) -> dict:
@@ -360,116 +379,4 @@ class WoordspelTD(commands.Cog):
                     "Regels:\n"
                     "- Typ een woord dat begint met de laatste letter van het vorige woord.\n"
                     "- Je mag niet twee keer achter elkaar.\n"
-                    "- Typ geen meerdere woorden tegelijk!\n\n"
-                    "De toegewezen taak moet uitgevoerd worden in het taak-kanaal.")
-        else:
-            title = "🔁 Ongeldig woord — Spel gepauzeerd!"
-            desc = (f"❌ `{message.content}` is geen geldig Nederlands woord! De score is aangepast.\n\n"
-                    f"Het spel is gepauzeerd en wacht op een taak van {message.author.display_name}.\n\n"
-                    "Regels:\n"
-                    "- Typ een woord dat begint met de laatste letter van het vorige woord.\n"
-                    "- Je mag niet twee keer achter elkaar.\n"
-                    "- Typ geen meerdere woorden tegelijk!\n\n"
-                    "De toegewezen taak moet uitgevoerd worden in het taak-kanaal.")
-        await message.channel.send(embed=self.make_embed(title=title, description=desc))
-
-        await self._give_task(message, cause_word=message.content)
-
-    async def _give_task(self, message, cause_word: Optional[str] = None):
-        """Geef een taak en pauzeer het spel totdat uitgevoerd."""
-        st = self._get_state(message.guild.id)
-        st["cooldown"] = True
-        st["task_assignee_id"] = message.author.id
-        guild_id = str(message.guild.id)
-        task_chan_id = self.settings.get(guild_id, {}).get("task_channel")
-        if not task_chan_id:
-            st["cooldown"] = False
-            await message.channel.send(embed=self.make_embed(
-                description="⚠️ Geen taak-kanaal ingesteld. Gebruik `[p]woordspel_td settaskchannel #kanaal`"
-            ))
-            return
-        task_channel = message.guild.get_channel(task_chan_id)
-        if not task_channel:
-            st["cooldown"] = False
-            await message.channel.send(embed=self.make_embed(description="⚠️ Taak-kanaal niet gevonden."))
-            return
-        if not self.tasks["tasks"]:
-            st["cooldown"] = False
-            await message.channel.send(embed=self.make_embed(description="⚠️ Geen taken beschikbaar."))
-            return
-
-        # kies taak
-        taak = random.choice(self.tasks["tasks"])
-        st["task_text"] = taak["text"]
-
-        # bericht in taak-kanaal, mention user en zet uitleg dat spel gepauzeerd is
-        try:
-            await task_channel.send(embed=self.make_embed(
-                title=f"🎯 Taak voor {message.author.display_name}",
-                description=(f"{message.author.mention}, voer deze taak uit:\n\n{taak['text']}\n\n"
-                             f"Wanneer voltooid, reageer hier (typ iets).")
-            ))
-        except Exception:
-            # als het posten in taak-kanaal faalt, ontkoppel cooldown en meld in game channel
-            st["cooldown"] = False
-            await message.channel.send(embed=self.make_embed(description="⚠️ Kon geen bericht sturen in taak-kanaal. Controleer permissies."))
-            return
-
-        # melding in spel-kanaal dat het spel gepauzeerd is en wie moet uitvoeren
-        try:
-            await message.channel.send(embed=self.make_embed(
-                title="⏸️ Spel gepauzeerd",
-                description=f"Het spel is gepauzeerd tot de taak is uitgevoerd door: {message.author.mention}\nDe taak dient uitgevoerd te worden in {task_channel.mention}."
-            ))
-        except Exception:
-            pass
-
-        def check(m):
-            return m.author == message.author and m.channel.id == task_channel.id
-
-        try:
-            # wacht max 5 minuten op taak uitvoering
-            done_msg = await self.bot.wait_for("message", check=check, timeout=300)
-            # bevestig in taak-kanaal dat taak is voldaan
-            try:
-                await task_channel.send(embed=self.make_embed(
-                    title="✅ Taak voldaan",
-                    description=f"{message.author.mention} heeft de taak voldaan. Het spel wordt hervat."
-                ))
-            except Exception:
-                pass
-
-            # in spel-kanaal aangeven wat het laatste woord was en dat spel verder kan gaan
-            last = st.get("last_word") or "geen vorig woord"
-            try:
-                await message.channel.send(embed=self.make_embed(
-                    description=(f"✅ Taak uitgevoerd door {message.author.mention}.\n"
-                                 f"Laatste woord was: `{last}`.\n"
-                                 "Het spel kan nu verdergaan.")
-                ))
-            except Exception:
-                pass
-
-        except asyncio.TimeoutError:
-            try:
-                await task_channel.send(embed=self.make_embed(
-                    title="⏰ Taak niet uitgevoerd",
-                    description=f"{message.author.mention} heeft de taak niet binnen 5 minuten uitgevoerd. Het spel wordt hervat."
-                ))
-            except Exception:
-                pass
-            try:
-                await message.channel.send(embed=self.make_embed(
-                    description="❌ Taak niet uitgevoerd binnen 5 minuten. Het spel gaat verder."
-                ))
-            except Exception:
-                pass
-        finally:
-            # reset cooldown and task info
-            st["cooldown"] = False
-            st["task_assignee_id"] = None
-            st["task_text"] = None
-
-    def make_embed(self, title=None, description=None):
-        embed = discord.Embed(title=title, description=description, color=0x9b59b6)
-        return embed
+                    "- Typ geen meerdere woorden tegelijk!
