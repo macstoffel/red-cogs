@@ -6,11 +6,13 @@ import asyncio
 import json
 import os
 import random
+import time
 from typing import Optional
 from pathlib import Path
 
 # pad naar het takenbestand binnen de cog-map (schrijfbaar)
 DATA_PATH = Path(__file__).parent / "data" / "woordspel_td_tasks.json"
+STATE_PATH = Path(__file__).parent / "data" / "woordspel_td_state.json"
 
 class WoordspelTD(commands.Cog):
     """WoordspelTD - Woordspel met flirty dare-taken (groepscommand [p]ws)."""
@@ -29,8 +31,18 @@ class WoordspelTD(commands.Cog):
             with DATA_PATH.open("w", encoding="utf-8") as f:
                 json.dump({"default_tasks": [], "guilds": {}}, f, ensure_ascii=False, indent=2)
         self._load_tasks()
-        self.locks = {}
-        self._timeout_tasks = {}
+        # load persisted state (games + recreate timers)
+        self._load_state()
+        # recreate pending timeout tasks
+        for gid, st in list(self.games.items()):
+            expires = st.get("task_expires_at")
+            if st.get("paused") and expires:
+                remaining = expires - time.time()
+                if remaining > 0:
+                    self._timeout_tasks[gid] = asyncio.create_task(self._wait_timeout(gid, remaining))
+                else:
+                    # expired while offline -> handle as timeout
+                    asyncio.create_task(self._task_completed(gid, False))
 
     # ----------------- Helpers -----------------
     def _get_state(self, guild_id: int) -> dict:
@@ -78,6 +90,26 @@ class WoordspelTD(commands.Cog):
 
     def make_embed(self, title=None, description=None):
         return discord.Embed(title=title, description=description, color=0x9B59B6)
+
+    def _save_state(self):
+        try:
+            STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with STATE_PATH.open("w", encoding="utf-8") as f:
+                json.dump(self.games, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass  # log if gewenst
+
+    def _load_state(self):
+        if STATE_PATH.exists():
+            try:
+                with STATE_PATH.open("r", encoding="utf-8") as f:
+                    self.games = json.load(f)
+                # convert keys back to int if needed
+                self.games = {int(k): v for k, v in self.games.items()}
+            except Exception:
+                self.games = {}
+        else:
+            self.games = {}
 
     # ================= COMMANDS =================
     @commands.group(name="ws", invoke_without_command=True)
@@ -264,10 +296,18 @@ class WoordspelTD(commands.Cog):
         st = self._get_state(gid)
         combined = self.tasks_data["default_tasks"] + self._guild_tasks(gid)
         taak = random.choice(combined) if combined else "Geen taak beschikbaar."
-        st.update({"paused": True, "current_task_user_id": user.id})
-        tc = st.get("task_channel_id") or self._guild_task_channel(gid)
-        st["task_channel_id"] = tc
         timeout = st.get("task_timeout") or 180
+        st["paused"] = True
+        st["current_task_user_id"] = user.id
+        st["task_expires_at"] = time.time() + timeout
+        self.games[gid] = st
+        self._save_state()
+        # schedule timeout task (cancel previous if exists)
+        t = self._timeout_tasks.get(gid)
+        if t and not t.done(): t.cancel()
+        self._timeout_tasks[gid] = asyncio.create_task(self._wait_timeout(gid, timeout))
+
+        tc = st.get("task_channel_id") or self._guild_task_channel(gid)
 
         game_ch = self.bot.get_channel(st["channel_id"])
         task_ch = self.bot.get_channel(tc)
@@ -279,10 +319,6 @@ class WoordspelTD(commands.Cog):
         if task_ch:
             await task_ch.send(embed=self.make_embed(title="📌 Nieuwe taak!", description=f"{user.mention}, {taak}"))
 
-        t = self._timeout_tasks.get(gid)
-        if t and not t.done(): t.cancel()
-        self._timeout_tasks[gid] = asyncio.create_task(self._wait_timeout(gid, timeout))
-
     async def _wait_timeout(self, gid, timeout):
         try:
             await asyncio.sleep(timeout)
@@ -292,9 +328,15 @@ class WoordspelTD(commands.Cog):
 
     async def _task_completed(self, gid, success, msg=None):
         st = self._get_state(gid)
+        # clear persisted task info
+        st["paused"] = False
+        st["current_task_user_id"] = None
+        st.pop("task_expires_at", None)
+        self.games[gid] = st
+        self._save_state()
+        # cancel any pending task
         t = self._timeout_tasks.get(gid)
         if t and not t.done(): t.cancel()
-        st.update({"paused": False, "current_task_user_id": None, "last_user_id": None})
         game_ch = self.bot.get_channel(st["channel_id"])
         if success:
             await game_ch.send(embed=self.make_embed(title=f"✅ Taak voltooid!", description=f"{msg.author.mention} heeft gepost, het spel gaat verder.\nHet laatste woord was `{st['last_word'][-1]}`"))
