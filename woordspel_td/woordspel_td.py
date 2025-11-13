@@ -366,6 +366,9 @@ class WoordspelTD(commands.Cog):
 
     async def _task_completed(self, gid, success, msg=None):
         st = self._get_state(gid)
+        # determine channels
+        game_ch = self.bot.get_channel(st.get("channel_id"))
+        task_ch = self.bot.get_channel(st.get("task_channel_id"))
         # clear persisted task info
         st["paused"] = False
         st["current_task_user_id"] = None
@@ -374,17 +377,49 @@ class WoordspelTD(commands.Cog):
         self._save_state()
         # cancel any pending task
         t = self._timeout_tasks.get(gid)
-        if t and not t.done(): t.cancel()
-        game_ch = self.bot.get_channel(st["channel_id"])
+        if t and not t.done():
+            t.cancel()
+
         if success:
+            actor_mention = msg.author.mention if msg and hasattr(msg, "author") else "De speler"
             last_word = st.get("last_word") or "geen vorig woord"
-            await game_ch.send(embed=self.make_embed(
-                title="✅ Taak voltooid!",
-                description=(f"{msg.author.mention} heeft bevestigd dat de taak is uitgevoerd. Het spel wordt hervat.\n\n"
-                             f"Laatste woord: `{last_word}`")
-            ))
+            # notify in task channel that task is completed and where the game continues
+            if task_ch:
+                try:
+                    await task_ch.send(embed=self.make_embed(
+                        title="✅ Taak voltooid",
+                        description=(f"{actor_mention} heeft de taak voltooid. Het spel wordt hervat in {game_ch.mention if game_ch else 'het spelkanaal'}.")
+                    ))
+                except Exception:
+                    pass
+            # notify in game channel that the task was completed and show last word
+            if game_ch:
+                try:
+                    await game_ch.send(embed=self.make_embed(
+                        title="✅ Taak voltooid!",
+                        description=(f"{actor_mention} heeft bevestigd dat de taak is uitgevoerd. Het spel wordt hervat.\n\n"
+                                     f"Laatste woord: `{last_word}`")
+                    ))
+                except Exception:
+                    pass
         else:
-            await game_ch.send(embed=self.make_embed(title="⌛ Timeout", description="Niemand heeft gepost, het spel gaat verder."))
+            # timeout / not completed
+            if task_ch:
+                try:
+                    await task_ch.send(embed=self.make_embed(
+                        title="⌛ Taak verlopen",
+                        description="De toegewezen taak is niet binnen de gestelde tijd uitgevoerd. Het spel wordt hervat."
+                    ))
+                except Exception:
+                    pass
+            if game_ch:
+                try:
+                    await game_ch.send(embed=self.make_embed(
+                        title="⌛ Timeout",
+                        description="Niemand heeft gepost, het spel gaat verder."
+                    ))
+                except Exception:
+                    pass
 
 async def setup(bot):
     await bot.add_cog(WoordspelTD(bot))
