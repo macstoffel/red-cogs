@@ -7,8 +7,10 @@ import json
 import os
 import random
 from typing import Optional
+from pathlib import Path
 
-DATA_PATH = "data/woordspel_td_tasks.json"  # pad naar het takenbestand
+# pad naar het takenbestand binnen de cog-map (schrijfbaar)
+DATA_PATH = Path(__file__).parent / "data" / "woordspel_td_tasks.json"
 
 class WoordspelTD(commands.Cog):
     """WoordspelTD - Woordspel met flirty dare-taken (groepscommand [p]ws)."""
@@ -20,11 +22,11 @@ class WoordspelTD(commands.Cog):
             self.nl_dict = enchant.Dict("nl_NL")
         except enchant.errors.DictNotFoundError:
             self.nl_dict = None
-        # zorg dat data-map bestaat
-        if not os.path.exists("data"):
-            os.makedirs("data", exist_ok=True)
-        if not os.path.isfile(DATA_PATH):
-            with open(DATA_PATH, "w", encoding="utf-8") as f:
+        # zorg dat data-map binnen de cog-map bestaat en maak het bestand aan indien nodig
+        data_dir = DATA_PATH.parent
+        data_dir.mkdir(parents=True, exist_ok=True)
+        if not DATA_PATH.exists():
+            with DATA_PATH.open("w", encoding="utf-8") as f:
                 json.dump({"default_tasks": [], "guilds": {}}, f, ensure_ascii=False, indent=2)
         self._load_tasks()
         self.locks = {}
