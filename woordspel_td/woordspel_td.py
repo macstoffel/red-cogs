@@ -31,6 +31,11 @@ class WoordspelTD(commands.Cog):
             with DATA_PATH.open("w", encoding="utf-8") as f:
                 json.dump({"default_tasks": [], "guilds": {}}, f, ensure_ascii=False, indent=2)
         self._load_tasks()
+
+        # init runtime structures
+        self.locks = {}
+        self._timeout_tasks = {}
+
         # load persisted state (games + recreate timers)
         self._load_state()
         # recreate pending timeout tasks
@@ -247,12 +252,33 @@ class WoordspelTD(commands.Cog):
         if msg.author.bot or not msg.guild: return
         st = self._get_state(msg.guild.id)
 
-        # Taak-afhandeling
-        if st["paused"] and msg.channel.id == st.get("task_channel_id") and msg.author.id == st.get("current_task_user_id"):
-            await self._task_completed(msg.guild.id, True, msg)
+        # Taak-afhandeling en pauze-gedrag
+        if st["paused"]:
+            # als de toegewezen gebruiker in het taak-kanaal iets plaatst -> taak voltooid
+            if msg.channel.id == st.get("task_channel_id") and msg.author.id == st.get("current_task_user_id"):
+                await self._task_completed(msg.guild.id, True, msg)
+                return
+            # als iemand in het spelkanaal iets plaatst tijdens pauze -> verwijder en korte waarschuwing
+            if msg.channel.id == st.get("channel_id"):
+                try:
+                    await msg.delete()
+                except Exception:
+                    pass
+                assignee = msg.guild.get_member(st.get("current_task_user_id"))
+                assignee_display = assignee.display_name if assignee else "de toegewezen speler"
+                notice = await msg.channel.send(embed=self.make_embed(
+                    description=f"⏸️ Het spel is gepauzeerd: {assignee_display} moet eerst de toegewezen taak uitvoeren."
+                ))
+                await asyncio.sleep(5)
+                try:
+                    await notice.delete()
+                except Exception:
+                    pass
+                return
+            # anders negeren
             return
-
-        if not st["active"] or st["paused"] or msg.channel.id != st["channel_id"]:
+        # niet actief of ander kanaal
+        if not st["active"] or msg.channel.id != st["channel_id"]:
             return
 
         woord = msg.content.strip().lower()
@@ -311,13 +337,25 @@ class WoordspelTD(commands.Cog):
 
         game_ch = self.bot.get_channel(st["channel_id"])
         task_ch = self.bot.get_channel(tc)
-        embed = self.make_embed(
-            title="🔁 Fout woord!",
-            description=f"{user.mention} typte `{woord}` dat {reason}.\n**Taak:** {taak}\n⏱ Timeout: {timeout}s"
-        )
-        await game_ch.send(embed=embed)
+        # bericht in spelkanaal met verwijzing naar taak-kanaal (indien ingesteld)
         if task_ch:
-            await task_ch.send(embed=self.make_embed(title="📌 Nieuwe taak!", description=f"{user.mention}, {taak}"))
+            task_channel_mention = task_ch.mention
+            game_desc = (f"{user.mention} typte `{woord}` dat {reason}.\n\n"
+                         f"De toegewezen taak staat in {task_channel_mention} en moet door {user.mention} uitgevoerd worden.\n"
+                         f"**Taak:** {taak}\n⏱ Timeout: {timeout}s")
+        else:
+            game_desc = (f"{user.mention} typte `{woord}` dat {reason}.\n\n"
+                         f"**Taak:** {taak}\n⏱ Timeout: {timeout}s\n\n"
+                         "⚠️ Er is geen taak-kanaal ingesteld; gebruik `[p]ws settaskchannel #kanaal`.")
+        await game_ch.send(embed=self.make_embed(title="🔁 Fout woord!", description=game_desc))
+
+        # bericht in taak-kanaal met ping naar wie de taak moet uitvoeren
+        if task_ch:
+            await task_ch.send(embed=self.make_embed(
+                title="📌 Nieuwe taak – actie vereist",
+                description=f"{user.mention}, voer deze taak uit:\n\n{taak}\n\n"
+                            "Wanneer je klaar bent, typ iets in dit kanaal om te bevestigen."
+            ))
 
     async def _wait_timeout(self, gid, timeout):
         try:
@@ -339,7 +377,12 @@ class WoordspelTD(commands.Cog):
         if t and not t.done(): t.cancel()
         game_ch = self.bot.get_channel(st["channel_id"])
         if success:
-            await game_ch.send(embed=self.make_embed(title=f"✅ Taak voltooid!", description=f"{msg.author.mention} heeft gepost, het spel gaat verder.\nHet laatste woord was `{st['last_word'][-1]}`"))
+            last_word = st.get("last_word") or "geen vorig woord"
+            await game_ch.send(embed=self.make_embed(
+                title="✅ Taak voltooid!",
+                description=(f"{msg.author.mention} heeft bevestigd dat de taak is uitgevoerd. Het spel wordt hervat.\n\n"
+                             f"Laatste woord: `{last_word}`")
+            ))
         else:
             await game_ch.send(embed=self.make_embed(title="⌛ Timeout", description="Niemand heeft gepost, het spel gaat verder."))
 
