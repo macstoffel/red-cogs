@@ -226,7 +226,7 @@ class WoordspelTD(commands.Cog):
         woord = msg.content.strip().lower()
         if len(woord.split()) != 1:
             await msg.delete()
-            await msg.channel.send(embed=self.make_embed(description="❌ Eén woord tegelijk!"))
+            await msg.channel.send(embed=self.make_embed(description="❌ Het mag maar 1 woord zijn!"))
             return
 
         if st["last_user_id"] == msg.author.id:
@@ -297,7 +297,7 @@ class WoordspelTD(commands.Cog):
         st.update({"paused": False, "current_task_user_id": None, "last_user_id": None})
         game_ch = self.bot.get_channel(st["channel_id"])
         if success:
-            await game_ch.send(embed=self.make_embed(title="✅ Taak voltooid!", description=f"{msg.author.mention} heeft gepost, het spel gaat verder."))
+            await game_ch.send(embed=self.make_embed(title=f"✅ Taak voltooid!", description=f"{msg.author.mention} heeft gepost, het spel gaat verder.\nHet laatste woord was `{st['last_word'][-1]}`"))
         else:
             await game_ch.send(embed=self.make_embed(title="⌛ Timeout", description="Niemand heeft gepost, het spel gaat verder."))
 
