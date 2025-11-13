@@ -21,7 +21,7 @@ class WoordspelTD(commands.Cog):
         except enchant.errors.DictNotFoundError:
             self.nl_dict = None
         if not os.path.exists("data"):
-            os.makedirs("data", exist_ok=True)
+#            os.makedirs("data", exist_ok=True)
         if not os.path.isfile(DATA_PATH):
             with open(DATA_PATH, "w", encoding="utf-8") as f:
                 json.dump({"default_tasks": [], "guilds": {}}, f, ensure_ascii=False, indent=2)
