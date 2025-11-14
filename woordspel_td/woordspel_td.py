@@ -315,6 +315,9 @@ class WoordspelTD(commands.Cog):
         st = self._get_state(msg.guild.id)
         if st["current_score"] > st["high_score"]:
             st["high_score"] = st["current_score"]
+        # bewaar het laatst geldige woord zodat we na de taak weten waar verder te gaan
+        st["last_valid_word"] = st.get("last_word")
+        # reset huidige ronde maar houd last_valid_word voor later
         st.update({"current_score": 0, "last_word": None, "last_user_id": None})
         await self._assign_task(msg.guild.id, msg.author, woord, reason)
 
@@ -366,49 +369,66 @@ class WoordspelTD(commands.Cog):
 
     async def _task_completed(self, gid, success, msg=None):
         st = self._get_state(gid)
-        # determine channels
+
+        # determine channels (try stored id first, fall back to guild config)
         game_ch = self.bot.get_channel(st.get("channel_id"))
-        task_ch = self.bot.get_channel(st.get("task_channel_id"))
-        # clear persisted task info
-        st["paused"] = False
-        st["current_task_user_id"] = None
-        st.pop("task_expires_at", None)
-        self.games[gid] = st
-        self._save_state()
-        # cancel any pending task
+        tc_id = st.get("task_channel_id") or self._guild_task_channel(gid)
+        task_ch = self.bot.get_channel(tc_id) if tc_id else None
+
+        # cancel any pending timeout task
         t = self._timeout_tasks.get(gid)
         if t and not t.done():
             t.cancel()
 
+        # restore last valid word so the game can continue from the correct point
+        last_word = st.pop("last_valid_word", None) or st.get("last_word")
+        if last_word:
+            st["last_word"] = last_word
+        else:
+            st["last_word"] = None
+
+        # reset task-related state
+        st["paused"] = False
+        st["current_task_user_id"] = None
+        st.pop("task_expires_at", None)
+        st["last_user_id"] = None
+
+        self.games[gid] = st
+        self._save_state()
+
         if success:
             actor_mention = msg.author.mention if msg and hasattr(msg, "author") else "De speler"
-            last_word = st.get("last_word") or "geen vorig woord"
-            # notify in task channel that task is completed and where the game continues
+            display_last = last_word or "geen vorig woord"
+
+            # Notify in task channel that the task is completed and where the game continues
             if task_ch:
                 try:
                     await task_ch.send(embed=self.make_embed(
                         title="✅ Taak voltooid",
-                        description=(f"{actor_mention} heeft de taak voltooid. Het spel wordt hervat in {game_ch.mention if game_ch else 'het spelkanaal'}.")
+                        description=(f"{actor_mention} heeft de taak voltooid. "
+                                     f"Het spel wordt hervat in {game_ch.mention if game_ch else 'het spelkanaal'}.")
                     ))
                 except Exception:
                     pass
-            # notify in game channel that the task was completed and show last word
+
+            # Notify in game channel that the task was completed and show last word
             if game_ch:
                 try:
                     await game_ch.send(embed=self.make_embed(
                         title="✅ Taak voltooid!",
                         description=(f"{actor_mention} heeft bevestigd dat de taak is uitgevoerd. Het spel wordt hervat.\n\n"
-                                     f"Laatste woord: `{last_word}`")
+                                     f"Laatste woord: `{display_last}`")
                     ))
                 except Exception:
                     pass
         else:
-            # timeout / not completed
+            # Timeout / not completed: notify both channels
             if task_ch:
                 try:
                     await task_ch.send(embed=self.make_embed(
                         title="⌛ Taak verlopen",
-                        description="De toegewezen taak is niet binnen de gestelde tijd uitgevoerd. Het spel wordt hervat."
+                        description=(f"De toegewezen taak is niet binnen de gestelde tijd uitgevoerd. "
+                                     f"Het spel wordt hervat in {game_ch.mention if game_ch else 'het spelkanaal'}.")
                     ))
                 except Exception:
                     pass
