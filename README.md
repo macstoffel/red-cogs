@@ -3,6 +3,11 @@
 ## These are my personal cogs for Discord Red-Bot.Just made to experiment with some ideas
 
 ---
+
+> alphabetkink - just a wordgame with NSFW-words.
+
+> bumpreminder - reminds everyone to bump on Disboard
+
 > prutser - assign a role to block a user from participating in counting
 > 
 > timematchcog - for alerting my kids to touch the ground

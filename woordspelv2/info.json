@@ -1,0 +1,14 @@
+{
+    "author": ["MacStoffel"],
+    "install_msg": "✔ WoordspelV2 succesvol geïnstalleerd!\nGebruik `$ws help` om te beginnen.",
+    "name": "WoordspelV2",
+    "short": "Een uitgebreid Nederlands woordspel voor Discord met taken-systeem.",
+    "description": "Een verbeterde versie van het originele woordspel met pauze-functie, takenkanaal, taakverwerking, time-outs, woordvalidatie en volledige embed-ondersteuning.",
+    "version": "2.0.0",
+    "min_bot_version": "3.5.0",
+    "hidden": false,
+    "requirements": ["pyenchant"],
+    "tags": ["game", "woordspel", "fun", "utility", "dutch"],
+    "permissions": [],
+    "type": "COG"
+}
