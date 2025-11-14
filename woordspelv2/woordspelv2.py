@@ -452,12 +452,12 @@ class WoordSpelV2(commands.Cog):
             st["high_score"] = st["current_score"]
         st["current_score"] = 0
 
-         # If there's already a pending task, inform user
-         if st.get("paused") and st.get("pending_task"):
-             await game_channel.send(embed=self.make_embed(
-                 description="🛑 Er is al een openstaande taak — los die eerst op voordat je nieuwe fouten maakt."
-             ))
-             return
+        # If there's already a pending task, inform user
+        if st.get("paused") and st.get("pending_task"):
+            await game_channel.send(embed=self.make_embed(
+                description="🛑 Er is al een openstaande taak — los die eerst op voordat je nieuwe fouten maakt."
+            ))
+            return
 
         # choose a task
         tasks_list = gd.get("tasks", [])
@@ -465,6 +465,16 @@ class WoordSpelV2(commands.Cog):
             chosen = "Typ een bericht om verder te gaan."
         else:
             chosen = random.choice(tasks_list)
+
+        # cancel any previous timeout handle (safety)
+        pending = st.get("pending_task")
+        if pending:
+            th = pending.get("timeout_handle")
+            try:
+                if th and not th.done():
+                    th.cancel()
+            except Exception:
+                pass
 
         # set paused state and store pending task
         st["paused"] = True
