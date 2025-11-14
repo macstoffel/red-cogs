@@ -57,20 +57,34 @@ class WoordSpelV2(commands.Cog):
             return
         try:
             text = self.data_file.read_text(encoding="utf-8")
-            self.data = json.loads(text) if text else {"guilds": {}}
-        except Exception:
-            # fallback safe default
+            loaded = json.loads(text) if text else {}
+            if not isinstance(loaded, dict):
+                loaded = {}
+            # ensure 'guilds' key exists and is a dict
+            if "guilds" not in loaded or not isinstance(loaded["guilds"], dict):
+                loaded["guilds"] = {}
+            self.data = loaded
+        except Exception as e:
+            # fallback safe default and persist it
+            print(f"[WoordSpelV2] Kon data niet lezen of file corrupt ({e}), reset naar default.")
             self.data = {"guilds": {}}
             self._save_data()
 
     def _save_data(self):
         try:
+            # ensure parent folder exists
+            self.data_file.parent.mkdir(parents=True, exist_ok=True)
             self.data_file.write_text(json.dumps(self.data, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception as e:
             # cannot raise here — log to console
             print(f"[WoordSpelV2] Kon data niet opslaan: {e}")
 
     def _get_guild_data(self, guild_id: int) -> dict:
+        # ensure top-level structure is valid
+        if not isinstance(self.data, dict):
+            self.data = {"guilds": {}}
+        if "guilds" not in self.data or not isinstance(self.data["guilds"], dict):
+            self.data["guilds"] = {}
         gid = str(guild_id)
         gd = self.data["guilds"].setdefault(gid, {
             "task_channel_id": None,
