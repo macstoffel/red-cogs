@@ -8,6 +8,17 @@ import random
 from typing import Optional
 from pathlib import Path
 
+# Zorg dat er een schrijfbare data-map in de cog-map zelf is (vermijdt permission issues)
+BASE = Path(__file__).parent
+DATA_FOLDER = BASE / "data"
+DATA_FILE = DATA_FOLDER / "tasks.json"
+
+# aanmaken map (parents niet nodig hier omdat BASE al een map is) en file als die ontbreekt
+DATA_FOLDER.mkdir(exist_ok=True)
+if not DATA_FILE.exists():
+    with DATA_FILE.open("w", encoding="utf-8") as f:
+        json.dump({"tasks": []}, f, ensure_ascii=False, indent=4)
+
 EMBED_COLOR = 0x9b59b6
 DEFAULT_TIMEOUT = 300  # seconden (5 min)
 
@@ -29,9 +40,10 @@ class WoordSpelV2(commands.Cog):
             self.nl_dict = None
 
         # data file via Redbot data_manager
-        self.data_path: Path = data_manager.cog_data_path(raw_name="woordspelv2")
-        self.data_path.mkdir(parents=True, exist_ok=True)
-        self.data_file: Path = self.data_path / "data.json"
+        # gebruik lokale cog-data file (schrijfbaar) als fallback / primaire opslag
+        self.data_file: Path = DATA_FILE
+        # bewaar ook container voor compatibility met eerdere code
+        self.data = {}
 
         # laad of init persistent data
         self._load_data()
