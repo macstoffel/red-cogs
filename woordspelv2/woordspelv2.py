@@ -447,12 +447,17 @@ class WoordSpelV2(commands.Cog):
         st = self._get_state(guild.id)
         gd = self._get_guild_data(guild.id)
 
-        # If there's already a pending task, inform user
-        if st.get("paused") and st.get("pending_task"):
-            await game_channel.send(embed=self.make_embed(
-                description="🛑 Er is al een openstaande taak — los die eerst op voordat je nieuwe fouten maakt."
-            ))
-            return
+        # update highscore en reset de huidige score bij een fout woord
+        if st.get("current_score", 0) > st.get("high_score", 0):
+            st["high_score"] = st["current_score"]
+        st["current_score"] = 0
+
+         # If there's already a pending task, inform user
+         if st.get("paused") and st.get("pending_task"):
+             await game_channel.send(embed=self.make_embed(
+                 description="🛑 Er is al een openstaande taak — los die eerst op voordat je nieuwe fouten maakt."
+             ))
+             return
 
         # choose a task
         tasks_list = gd.get("tasks", [])
