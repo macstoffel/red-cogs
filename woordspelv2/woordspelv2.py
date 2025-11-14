@@ -322,6 +322,15 @@ class WoordSpelV2(commands.Cog):
         if message.author.bot or not message.guild:
             return
 
+        # Sla command-berichten over zodat on_message geen command-invokes verwerkt
+        try:
+            ctx = await self.bot.get_context(message)
+            if ctx and ctx.command is not None:
+                return
+        except Exception:
+            # als context ophalen faalt, ga door met normale checks
+            pass
+
         st = self._get_state(message.guild.id)
         gd = self._get_guild_data(message.guild.id)
 
