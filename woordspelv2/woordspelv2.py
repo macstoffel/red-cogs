@@ -1,65 +1,66 @@
+# woordspelv2.py
 import discord
-from discord.ext import commands, tasks
+from redbot.core import commands, data_manager
 import enchant
 import asyncio
 import json
-import os
 import random
 from typing import Optional
+from pathlib import Path
 
-DATA_FILE = "data_woordspelv2.json"
-DEFAULT_TIMEOUT = 300  # 5 minuten
 EMBED_COLOR = 0x9b59b6
-
-# Zorg dat data file bestaat (met initial content)
-if not os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump({"guilds": {}}, f, ensure_ascii=False, indent=2)
+DEFAULT_TIMEOUT = 300  # seconden (5 min)
 
 
-class WoordspelV2(commands.Cog):
-    """Woordspel V2 — pauze bij fout woord, taak-systeem, JSON takenbeheer, per-guild instellingen."""
+class WoordSpelV2(commands.Cog):
+    """WoordspelV2 — woordketting met taak-systeem, persisted data via Red-DiscordBot data_manager."""
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot):
         self.bot = bot
 
-        # per guild runtime state
-        # guild_id -> {
-        #   active: bool,
-        #   channel_id: int,
-        #   current_score: int,
-        #   high_score: int,
-        #   last_word: Optional[str],
-        #   last_user_id: Optional[int],
-        #   goal_points: int,
-        #   paused: bool,
-        #   pending_task: { user_id, task_text, assigned_at, timeout_handle (asyncio.Task) } or None
-        # }
+        # runtime state (niet persisted)
+        # guild_id -> runtime dict
         self.games = {}
 
-        # load enchant nl dict
+        # probeer NL dictionary
         try:
             self.nl_dict = enchant.Dict("nl_NL")
         except Exception:
             self.nl_dict = None
 
-        # load persistent data (task lists, task channel, timeout) per guild
+        # data file via Redbot data_manager
+        self.data_path: Path = data_manager.cog_data_path(raw_name="woordspelv2")
+        self.data_path.mkdir(parents=True, exist_ok=True)
+        self.data_file: Path = self.data_path / "data.json"
+
+        # laad of init persistent data
         self._load_data()
 
-    # -------------------- data persistence --------------------
+    # -------------------- Persistent data helpers --------------------
     def _load_data(self):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            self.data = json.load(f)
-        # ensure structure
-        self.data.setdefault("guilds", {})
+        if not self.data_file.exists():
+            # default structure
+            self.data = {"guilds": {}}
+            self._save_data()
+            return
+        try:
+            text = self.data_file.read_text(encoding="utf-8")
+            self.data = json.loads(text) if text else {"guilds": {}}
+        except Exception:
+            # fallback safe default
+            self.data = {"guilds": {}}
+            self._save_data()
 
     def _save_data(self):
-        os.makedirs(os.path.dirname(DATA_FILE) or ".", exist_ok=True)
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, ensure_ascii=False, indent=2)
+        try:
+            self.data_file.write_text(json.dumps(self.data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            # cannot raise here — log to console
+            print(f"[WoordSpelV2] Kon data niet opslaan: {e}")
 
     def _get_guild_data(self, guild_id: int) -> dict:
-        gd = self.data["guilds"].setdefault(str(guild_id), {
+        gid = str(guild_id)
+        gd = self.data["guilds"].setdefault(gid, {
             "task_channel_id": None,
             "timeout_seconds": DEFAULT_TIMEOUT,
             "tasks": [
@@ -72,7 +73,7 @@ class WoordspelV2(commands.Cog):
         })
         return gd
 
-    # -------------------- helpers voor runtime state --------------------
+    # -------------------- Runtime state --------------------
     def _get_state(self, guild_id: int) -> dict:
         st = self.games.setdefault(guild_id, {
             "active": False,
@@ -83,49 +84,52 @@ class WoordspelV2(commands.Cog):
             "last_user_id": None,
             "goal_points": 10,
             "paused": False,
-            "pending_task": None
+            "pending_task": None  # dict: user_id, task_text, assigned_at, timeout_handle
         })
         return st
 
+    # -------------------- Helper embed --------------------
     def make_embed(self, title: Optional[str] = None, description: Optional[str] = None):
         embed = discord.Embed(title=title, description=description, color=EMBED_COLOR)
         return embed
 
-    # -------------------- Command groep $ws --------------------
+    # -------------------- Command group $ws --------------------
     @commands.group(name="ws", invoke_without_command=True)
     async def ws(self, ctx: commands.Context):
-        """Hoofdgroep: gebruik subcommands zoals $ws start, $ws stop, $ws taakadd, ..."""
+        """Woordspel V2 hoofdcommand — gebruik subcommands."""
         await ctx.send(embed=self.make_embed(
-            title="Woordspel V2 — Help",
-            description="Gebruik `$ws help` voor een volledige lijst met commands."
+            title="Woordspel V2",
+            description="Gebruik `$ws help` voor alle commands."
         ))
 
-    # ---------- basis commands die jouw originele spel bevat ----------
+    # ---------- Basis commands ----------
     @ws.command(name="start")
     async def start(self, ctx: commands.Context, goal: int = 10):
         """Start het woordspel (per guild)."""
         if self.nl_dict is None:
             await ctx.send(embed=self.make_embed(
                 title="⚠️ Dictionary niet geladen",
-                description="pyenchant of de Nederlandse dictionary is niet beschikbaar."
+                description="De Nederlandse dictionary van pyenchant is niet beschikbaar."
             ))
             return
 
         st = self._get_state(ctx.guild.id)
         if st["active"] and not st["paused"]:
             await ctx.send(embed=self.make_embed(
-                description="Er is al een spel actief in deze server!"
+                description="Er is al een actief spel in deze server!"
             ))
             return
 
-        st["active"] = True
-        st["paused"] = False
-        st["channel_id"] = ctx.channel.id
-        st["current_score"] = 0
-        st["last_word"] = None
-        st["last_user_id"] = None
-        st["goal_points"] = goal
-        st["pending_task"] = None
+        st.update({
+            "active": True,
+            "paused": False,
+            "channel_id": ctx.channel.id,
+            "current_score": 0,
+            "last_word": None,
+            "last_user_id": None,
+            "goal_points": goal,
+            "pending_task": None
+        })
 
         await ctx.send(embed=self.make_embed(
             title="🎮 Woordspel V2 gestart!",
@@ -146,18 +150,21 @@ class WoordspelV2(commands.Cog):
             await ctx.send(embed=self.make_embed(description="Er is geen actief spel in deze server!"))
             return
 
-        # cancel pending timeout task if aanwezig
-        if st["pending_task"] and st["pending_task"].get("timeout_handle"):
-            th = st["pending_task"]["timeout_handle"]
+        # cancel timeout if exists
+        pending = st.get("pending_task")
+        if pending and pending.get("timeout_handle"):
+            th = pending["timeout_handle"]
             if not th.done():
                 th.cancel()
 
-        st["active"] = False
-        st["paused"] = False
-        st["current_score"] = 0
-        st["last_word"] = None
-        st["last_user_id"] = None
-        st["pending_task"] = None
+        st.update({
+            "active": False,
+            "paused": False,
+            "current_score": 0,
+            "last_word": None,
+            "last_user_id": None,
+            "pending_task": None
+        })
 
         await ctx.send(embed=self.make_embed(title="🛑 Spel gestopt", description="Het woordspel is gestopt."))
 
@@ -195,15 +202,16 @@ class WoordspelV2(commands.Cog):
                 "`$ws taskchannel #kanaal` - Stel taak-kanaal in\n"
                 "`$ws timeout <seconden>` - Stel timeout in (default 300)\n"
                 "\nWanneer iemand een fout woord typt, gaat het spel op pauze en krijgt die speler een taak in het taak-kanaal.\n"
-                "Zodra de speler een bericht in het taak-kanaal plaatst, wordt het spel hervat.\n"
+                "Zodra de speler een bericht in het taak-kanaal plaatst, wordt het spel hervat."
             )
         )
         await ctx.send(embed=embed)
 
-    # -------------------- Task management commands (JSON) --------------------
+    # -------------------- Task management (persisted) --------------------
     @ws.command(name="taakadd")
+    @commands.mod_or_permissions(manage_guild=True)
     async def taakadd(self, ctx: commands.Context, *, tekst: str):
-        """Voeg een taak toe aan de guild-takenlijst."""
+        """Voeg een taak toe aan de guild-takenlijst (require manage_guild)."""
         gd = self._get_guild_data(ctx.guild.id)
         gd["tasks"].append(tekst)
         self._save_data()
@@ -213,8 +221,9 @@ class WoordspelV2(commands.Cog):
         ))
 
     @ws.command(name="taakremove")
+    @commands.mod_or_permissions(manage_guild=True)
     async def taakremove(self, ctx: commands.Context, taak_id: int):
-        """Verwijder taak op ID (gebruik $ws taken om ids te zien)."""
+        """Verwijder taak op ID (require manage_guild)."""
         gd = self._get_guild_data(ctx.guild.id)
         if 0 <= taak_id < len(gd["tasks"]):
             removed = gd["tasks"].pop(taak_id)
@@ -237,12 +246,12 @@ class WoordspelV2(commands.Cog):
             return
         desc_lines = []
         for i, t in enumerate(gd["tasks"]):
-            # laat lange taken netjes zien
-            short = t if len(t) < 100 else t[:97] + "..."
+            short = t if len(t) < 150 else t[:147] + "..."
             desc_lines.append(f"**{i}** — {short}")
         await ctx.send(embed=self.make_embed(title="Takenlijst", description="\n".join(desc_lines)))
 
     @ws.command(name="taskchannel")
+    @commands.mod_or_permissions(manage_guild=True)
     async def taskchannel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Stel het taak-kanaal in voor deze guild."""
         gd = self._get_guild_data(ctx.guild.id)
@@ -254,6 +263,7 @@ class WoordspelV2(commands.Cog):
         ))
 
     @ws.command(name="timeout")
+    @commands.mod_or_permissions(manage_guild=True)
     async def timeout(self, ctx: commands.Context, seconds: int):
         """Stel de timeout (in seconden) in voor taken (per guild)."""
         if seconds <= 0:
@@ -267,7 +277,7 @@ class WoordspelV2(commands.Cog):
             description=f"Timeout is nu {seconds} seconden."
         ))
 
-    # -------------------- Message listener (spel kanaal + taakkanaal) --------------------
+    # -------------------- Message listener --------------------
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         # ignore bots / DMs
@@ -280,7 +290,6 @@ class WoordspelV2(commands.Cog):
         # If message is in the task-channel, check for task completion
         task_channel_id = gd.get("task_channel_id")
         if task_channel_id and message.channel.id == task_channel_id:
-            # If there is a pending task and author is the assigned user -> complete it
             pending = st.get("pending_task")
             if pending and pending.get("user_id") == message.author.id and st.get("paused"):
                 # cancel timeout handle
@@ -293,9 +302,8 @@ class WoordspelV2(commands.Cog):
                 st["pending_task"] = None
 
                 # notify both channels
-                game_ch = message.guild.get_channel(st["channel_id"]) if st["channel_id"] else None
+                game_ch = message.guild.get_channel(st["channel_id"]) if st.get("channel_id") else None
 
-                # Compose embed for task channel
                 await message.channel.send(embed=self.make_embed(
                     title="✅ Taak voltooid",
                     description=(f"{message.author.mention} heeft de taak voltooid — het spel wordt hervat.\n\n"
@@ -352,17 +360,21 @@ class WoordspelV2(commands.Cog):
             required = st["last_word"][-1]
             if not content.startswith(required):
                 # fout begonnen met verkeerde letter -> pauze en taak toewijzen
-                await self._assign_task_for_incorrect(message.guild, message.author, message.channel,
-                                                      f"Het woord moest beginnen met `{required}`, maar je begon met `{content}`.",
-                                                      previous_last_word=st["last_word"])
+                await self._assign_task_for_incorrect(
+                    message.guild, message.author, message.channel,
+                    f"Het woord moest beginnen met `{required}`, maar je begon met `{content}`.",
+                    previous_last_word=st["last_word"]
+                )
                 return
 
         # Check of het woord bestaat
         if not self.nl_dict.check(content):
             # ongeldig woord -> pauze en taak toewijzen
-            await self._assign_task_for_incorrect(message.guild, message.author, message.channel,
-                                                  f"`{content}` is geen geldig Nederlands woord!",
-                                                  previous_last_word=st["last_word"])
+            await self._assign_task_for_incorrect(
+                message.guild, message.author, message.channel,
+                f"`{content}` is geen geldig Nederlands woord!",
+                previous_last_word=st["last_word"]
+            )
             return
 
         # Correct woord
@@ -383,15 +395,17 @@ class WoordspelV2(commands.Cog):
             ))
             if st["current_score"] > st["high_score"]:
                 st["high_score"] = st["current_score"]
-            st["active"] = False
-            st["current_score"] = 0
-            st["last_word"] = None
-            st["last_user_id"] = None
+            st.update({
+                "active": False,
+                "current_score": 0,
+                "last_word": None,
+                "last_user_id": None
+            })
 
-    # -------------------- Task assignment / timeout helpers --------------------
+    # -------------------- Task assignment / timeout --------------------
     async def _assign_task_for_incorrect(self, guild: discord.Guild, user: discord.Member, game_channel: discord.TextChannel,
                                          reason_text: str, previous_last_word: Optional[str]):
-        """Zet het spel op pauze en post een taak in het taakkanaal. previous_last_word bevat het laatste correcte woord (of None)."""
+        """Zet het spel op pauze en post een taak in het taak-kanaal."""
         st = self._get_state(guild.id)
         gd = self._get_guild_data(guild.id)
 
@@ -402,26 +416,25 @@ class WoordspelV2(commands.Cog):
             ))
             return
 
-        # choose a task from guild tasks (random)
+        # choose a task
         tasks_list = gd.get("tasks", [])
         if not tasks_list:
             chosen = "Typ een bericht om verder te gaan."
         else:
             chosen = random.choice(tasks_list)
 
-        # set paused state
+        # set paused state and store pending task
         st["paused"] = True
         st["pending_task"] = {
             "user_id": user.id,
             "task_text": chosen,
             "assigned_at": asyncio.get_event_loop().time()
         }
-        # keep last_word as previous_last_word (do not erase) — we need to show it while paused
+        # keep last_word intact to show to users
         st["last_word"] = previous_last_word
-        # optional: record last_user_id who made error
         st["last_user_id"] = user.id
 
-        # send embed to game channel
+        # notify game channel
         await game_channel.send(embed=self.make_embed(
             title="🛑 Fout woord — Spel gepauzeerd",
             description=(f"❌ {user.mention} — {reason_text}\n\n"
@@ -429,12 +442,13 @@ class WoordspelV2(commands.Cog):
                          f"Laatste correcte woord: `{previous_last_word or 'geen'}`")
         ))
 
-        # post embed to task channel if configured
+        # post in task channel if configured
         task_channel_id = gd.get("task_channel_id")
+        task_ch = None
         if task_channel_id:
-            task_channel = guild.get_channel(task_channel_id)
-            if task_channel:
-                sent = await task_channel.send(embed=self.make_embed(
+            task_ch = guild.get_channel(task_channel_id)
+            if task_ch:
+                await task_ch.send(embed=self.make_embed(
                     title="📝 Taak toegewezen",
                     description=(f"{user.mention}, je hebt een taak om het spel te hervatten:\n\n"
                                  f"> {chosen}\n\n"
@@ -442,18 +456,17 @@ class WoordspelV2(commands.Cog):
                                  f"Als je binnen {gd.get('timeout_seconds', DEFAULT_TIMEOUT)} seconden niets doet, gaat het spel automatisch verder.")
                 ))
             else:
-                # channel id invalid
+                # invalid channel
                 await game_channel.send(embed=self.make_embed(
                     description="❗ Taak-kanaal is niet correct geconfigureerd of niet gevonden. Gebruik `$ws taskchannel #kanaal`."
                 ))
-                sent = None
+
         else:
             await game_channel.send(embed=self.make_embed(
                 description="❗ Er is geen taak-kanaal ingesteld. Gebruik `$ws taskchannel #kanaal` om er één in te stellen."
             ))
-            sent = None
 
-        # schedule timeout handler
+        # schedule timeout handler and store task handle
         timeout_seconds = gd.get("timeout_seconds", DEFAULT_TIMEOUT)
         th = asyncio.create_task(self._task_timeout_handler(guild.id, timeout_seconds))
         st["pending_task"]["timeout_handle"] = th
@@ -466,9 +479,9 @@ class WoordspelV2(commands.Cog):
             if not st.get("paused") or not st.get("pending_task"):
                 return  # already resolved
 
-            # clear pending task
             pending = st["pending_task"]
             user_id = pending.get("user_id")
+            # clear pending task
             st["paused"] = False
             st["pending_task"] = None
 
@@ -498,11 +511,7 @@ class WoordspelV2(commands.Cog):
             # timeout cancelled because task completed — ignore
             return
         except Exception as e:
-            # log if you'd like; swallow to avoid crashing task
-            print(f"Error in task timeout handler for guild {guild_id}: {e}")
+            print(f"[WoordSpelV2] Error in timeout handler for {guild_id}: {e}")
             return
 
-
-# Cog setup function for auto-loading
-def setup(bot):
-    bot.add_cog(WoordspelV2(bot))
+# EOF
