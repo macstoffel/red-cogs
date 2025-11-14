@@ -264,8 +264,20 @@ class WoordSpelV2(commands.Cog):
 
     @ws.command(name="taskchannel")
     @commands.mod_or_permissions(manage_guild=True)
-    async def taskchannel(self, ctx: commands.Context, channel: discord.TextChannel):
-        """Stel het taak-kanaal in voor deze guild."""
+    async def taskchannel(self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None):
+        """Stel het taak-kanaal in voor deze guild. Gebruik `#kanaal` of laat leeg om huidig kanaal te gebruiken."""
+        # fallback naar huidige channel wanneer geen argument gegeven
+        if channel is None:
+            channel = ctx.channel
+
+        # controleer dat bot kan posten in het kanaal
+        bot_member = ctx.guild.me or ctx.guild.get_member(self.bot.user.id)
+        perms = channel.permissions_for(bot_member)
+        if not perms.send_messages:
+            return await ctx.send(embed=self.make_embed(
+                description=f"❗ Ik kan niet posten in {channel.mention}. Controleer permissies voor de bot."
+            ))
+
         gd = self._get_guild_data(ctx.guild.id)
         gd["task_channel_id"] = channel.id
         self._save_data()
