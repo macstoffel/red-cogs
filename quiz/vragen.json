@@ -1,16 +1,17 @@
 {
-  "leiderscores": [
-    {"lid": "1234567890", "score": 10},
-    {"lid": "0987654321", "score": 20}
-  ],
   "vragen": {
-    "Vraag 1": {
-      "antwoorden": ["Antwoord 1", "Antwoord 2", "Antwoord 3"],
-      "juist": 0
-    },
-    "Vraag 2": {
-      "antwoorden": ["Antwoord 4", "Antwoord 5", "Antwoord 6"],
+    "Wat is 2+2?": {
+      "antwoorden": ["3", "4", "5"],
       "juist": 1
+    },
+    "Wat is de hoofdstad van Nederland?": {
+      "antwoorden": ["Rotterdam", "Den Haag", "Amsterdam"],
+      "juist": 2
+    }
+  },
+  "scores": {
+    "123456789012345678": {
+      "987654321098765432": 5
     }
   }
 }
