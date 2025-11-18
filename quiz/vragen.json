@@ -1,0 +1,16 @@
+{
+  "leiderscores": [
+    {"lid": "1234567890", "score": 10},
+    {"lid": "0987654321", "score": 20}
+  ],
+  "vragen": {
+    "Vraag 1": {
+      "antwoorden": ["Antwoord 1", "Antwoord 2", "Antwoord 3"],
+      "juist": 0
+    },
+    "Vraag 2": {
+      "antwoorden": ["Antwoord 4", "Antwoord 5", "Antwoord 6"],
+      "juist": 1
+    }
+  }
+}
