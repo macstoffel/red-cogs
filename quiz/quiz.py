@@ -78,7 +78,9 @@ finally:
     try:
         self.active_tasks.pop(guild.id, None)
     except Exception as e:
-        print(f"Error cleaning up tasks: {e}")async def _handle(self, interaction: discord.Interaction, index: int):
+        print(f"Error cleaning up tasks: {e}")
+        async def _handle(self, interaction: discord.Interaction, index: int):
+
     if self.selected is not None:
         # already answered
         await interaction.response.send_message("Er is al geantwoord.", ephemeral=True)
