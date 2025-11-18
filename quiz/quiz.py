@@ -165,7 +165,11 @@ class Quiz(commands.Cog):
             await task
         except Exception:
             pass
-        del self.active_tasks[guild_id]
+        # remove the active task entry if present; use pop to avoid KeyError
+        try:
+            self.active_tasks.pop(guild_id, None)
+        except Exception:
+            pass
         await ctx.send("Quiz gestopt.")
 
     async def _quiz_loop(self, guild: discord.Guild, channel: discord.TextChannel):
