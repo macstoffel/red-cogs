@@ -7,7 +7,99 @@ from typing import Optional, List, Tuple
 import discord
 from discord import Embed
 from discord.ui import View, button, Button
-from redbot.core import commands, Config
+from redbot.core# ...
+
+try:
+    while True:
+        if not self.questions:
+            await channel.send("Geen vragen beschikbaar.")
+            return
+        vraag = random.choice(list(self.questions.keys()))
+        data = self.questions[vraag]
+        antwoorden = data.get("antwoorden", [])
+        correct_idx = int(data.get("juist", 0))
+
+        embed = Embed(title=vraag, description="Klik op één van de knoppen om te antwooden.", color=discord.Color.purple())
+        for i, a in enumerate(antwoorden):
+            embed.add_field(name=f"Antwoord {i+1}", value=a, inline=False)
+
+        view = AnswerView(antwoorden)
+        # set button labels to actual answers
+        try:
+            view.children[0].label = antwoorden[0]
+            view.children[1].label = antwoorden[1]
+            view.children[2].label = antwoorden[2]
+        except Exception as e:
+            print(f"Error setting label: {e}")
+
+        msg = await channel.send(embed=embed, view=view)
+
+        # wait until someone answers (no timeout)
+        try:
+            await view.wait()
+        except asyncio.CancelledError:
+            # view.wait was cancelled because the task was cancelled; try to cleanup view
+            try:
+                view.stop()
+            except Exception as e:
+                print(f"Error stopping view: {e}")
+            raise
+
+        if view.selected is None:
+            # shouldn't happen, but continue
+            await channel.send("Er is geen antwoord geregistreerd.")
+            continue
+
+        user_id, ans_idx = view.selected
+        guild_obj = guild
+        member = guild_obj.get_member(user_id)
+        if ans_idx == correct_idx:
+            await self._update_score(guild_obj, user_id, 1)
+            res_embed = Embed(title="Juist!", description=f"{member.mention if member else user_id} kreeg +1 punt.", color=discord.Color.purple())
+        else:
+            await self._update_score(guild_obj, user_id, -1)
+            res_embed = Embed(title="Niet juist...", description=f"{member.mention if member else user_id} kreeg -1 punt.", color=discord.Color.purple())
+        await channel.send(embed=res_embed)
+        # small delay to avoid message collisions
+        await asyncio.sleep(0.5)
+
+except asyncio.CancelledError:
+    # allow graceful cancellation
+    return
+except Exception as e:
+    # log other unexpected exceptions but don't crash the loop permanently
+    try:
+        await channel.send("Er is een fout opgetreden in de quiz loop.")
+    except Exception as ee:
+        print(f"Error sending error message: {ee}")
+    return
+finally:
+    # cleanup active task entry if present
+    try:
+        self.active_tasks.pop(guild.id, None)
+    except Exception as e:
+        print(f"Error cleaning up tasks: {e}")async def _handle(self, interaction: discord.Interaction, index: int):
+    if self.selected is not None:
+        # already answered
+        await interaction.response.send_message("Er is al geantwoord.", ephemeral=True)
+        return
+    self.selected = (interaction.user.id, index)
+    # disable buttons
+    for child in self.children:
+        child.disabled = True
+    try:
+        await interaction.response.edit_message(view=self)
+    except Exception as e:
+        print(f"Error editing message: {e}")
+    # set button labels to actual answers
+    try:
+        self.children[0].label = self.answers[index]
+        if index < len(self.answers) - 1:
+            self.children[1].label = self.answers[index + 1]
+        else:
+            self.children[1].label = "Nog een keer!"
+    except Exception as e:
+        print(f"Error setting label: {e}") import commands, Config
 
 
 class AnswerView(View):
