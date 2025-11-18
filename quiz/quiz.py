@@ -25,16 +25,25 @@ class AnswerView(View):
         # disable buttons
         for child in self.children:
             child.disabled = True
+        # Try to edit the original message via the interaction response which also
+        # acknowledges the interaction. If that fails, attempt to defer (acknowledge)
+        # and then edit the message object as a fallback. This avoids "This interaction
+        # failed" shown to users when the bot doesn't acknowledge in time.
         try:
-            # edit the original message via the interaction response to acknowledge
+            await interaction.response.edit_message(view=self)
+        except Exception:
+            # If editing via response failed, ensure we at least acknowledge the interaction
             try:
-                await interaction.response.edit_message(view=self)
+                await interaction.response.defer(ephemeral=True)
             except Exception:
-                # fallback to editing the message object if response.edit_message fails
+                pass
+            # Fallback: try editing the underlying message object
+            try:
                 if interaction.message:
                     await interaction.message.edit(view=self)
-        except Exception:
-            pass
+            except Exception:
+                pass
+
         # stop the view so waiters resume
         self.stop()
 
