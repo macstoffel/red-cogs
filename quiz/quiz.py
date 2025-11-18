@@ -7,7 +7,7 @@ from typing import Optional, List, Tuple
 import discord
 from discord import Embed
 from discord.ui import View, button, Button
-from redbot.core# ...
+import redbot.core
 
 try:
     while True:
