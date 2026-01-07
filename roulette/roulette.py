@@ -1,18 +1,20 @@
 import discord
 import random
 import asyncio
+import json
+from pathlib import Path
 from datetime import datetime, timedelta
 
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
 PURPLE = discord.Color.purple()
+TASK_FILE = Path(__file__).parent / "tasks.json"
 
 
 # =========================
 # BUTTON VIEWS
 # =========================
-
 class RouletteView(discord.ui.View):
     def __init__(self, cog):
         super().__init__(timeout=None)
@@ -53,14 +55,14 @@ class ProofReviewView(discord.ui.View):
 # =========================
 # MAIN COG
 # =========================
-
 class Roulette(commands.Cog):
-    """Takenroulette met knoppen, bewijs, approvals en logging"""
+    """Takenroulette met JSON-taken, buttons, proof, approvals en logging"""
 
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=7788990011)
 
+        # Guild config
         self.config.register_guild(
             button_channel=None,
             proof_channel=None,
@@ -68,30 +70,41 @@ class Roulette(commands.Cog):
             cooldown_hours=24,
             approve_required=True,
             approve_role=None,
-            tasks={"male": [], "female": []},
             stats={}
         )
 
+        # User config
         self.config.register_user(
             active_task=None,
             last_request=None
         )
 
+        # Load tasks from JSON
+        self.tasks = self.load_tasks()
+
+    # =========================
+    # TASKS JSON HANDLING
+    # =========================
+    def load_tasks(self):
+        if TASK_FILE.exists():
+            with open(TASK_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {"male": [], "female": []}
+
+    def save_tasks(self):
+        with open(TASK_FILE, "w", encoding="utf-8") as f:
+            json.dump(self.tasks, f, indent=4, ensure_ascii=False)
+
     # =========================
     # HELPERS
     # =========================
-
     async def log(self, guild, title, description):
         channel_id = await self.config.guild(guild).log_channel()
         if not channel_id:
             return
         channel = guild.get_channel(channel_id)
         if channel:
-            embed = discord.Embed(
-                title=title,
-                description=description,
-                color=PURPLE
-            )
+            embed = discord.Embed(title=title, description=description, color=PURPLE)
             await channel.send(embed=embed)
 
     async def can_approve(self, member: discord.Member):
@@ -106,7 +119,6 @@ class Roulette(commands.Cog):
     # =========================
     # TASK REQUEST
     # =========================
-
     async def request_task(self, interaction: discord.Interaction, gender: str):
         user = interaction.user
         guild = interaction.guild
@@ -132,14 +144,13 @@ class Roulette(commands.Cog):
                 await interaction.delete_original_response()
                 return
 
-        tasks = await self.config.guild(guild).tasks()
-        if not tasks[gender]:
+        if not self.tasks.get(gender):
             return await interaction.response.send_message(
                 "❌ Geen taken beschikbaar.",
                 ephemeral=True
             )
 
-        task = random.choice(tasks[gender])
+        task = random.choice(self.tasks[gender])
 
         await self.config.user(user).active_task.set({
             "task": task,
@@ -148,6 +159,7 @@ class Roulette(commands.Cog):
         })
         await self.config.user(user).last_request.set(now.isoformat())
 
+        # Update stats
         stats = await self.config.guild(guild).stats()
         uid = str(user.id)
         stats.setdefault(uid, {"male": 0, "female": 0})
@@ -177,14 +189,12 @@ class Roulette(commands.Cog):
         )
 
         await interaction.response.send_message(
-            f"✅ Taak geplaatst in {proof_channel.mention}",
-            ephemeral=True
+            f"✅ Taak geplaatst in {proof_channel.mention}", ephemeral=True
         )
 
     # =========================
     # PROOF HANDLING
     # =========================
-
     async def approve_proof(self, interaction, user_id: int):
         user = interaction.guild.get_member(user_id)
         await self.config.user(user).active_task.clear()
@@ -252,11 +262,11 @@ class Roulette(commands.Cog):
     # =========================
     # COMMANDS
     # =========================
-
     @commands.group()
     async def roulette(self, ctx):
         """Roulette hoofdcommando"""
 
+    # --- setup
     @roulette.command()
     @commands.admin_or_permissions(manage_guild=True)
     async def setup(self, ctx, button_channel: discord.TextChannel, proof_channel: discord.TextChannel):
@@ -266,7 +276,7 @@ class Roulette(commands.Cog):
         await button_channel.send(
             embed=discord.Embed(
                 title="🎰 Roulette",
-                description="Klik op een knop om een taak te krijgen.\nMaar LET OP:\n**Er moet wel bewijs geleverd worden!**",
+                description="Klik op een knop om een taak te krijgen.\n maar LET OP!\n**Foto-bewijs moet geleverd worden!**",
                 color=PURPLE
             ),
             view=RouletteView(self)
@@ -274,12 +284,14 @@ class Roulette(commands.Cog):
 
         await ctx.send("✅ Roulette ingesteld.")
 
+    # --- logchannel
     @roulette.command()
     @commands.admin_or_permissions(manage_guild=True)
     async def logchannel(self, ctx, channel: discord.TextChannel):
         await self.config.guild(ctx.guild).log_channel.set(channel.id)
         await ctx.send("✅ Logkanaal ingesteld.")
 
+    # --- approve aan/uit
     @roulette.command()
     @commands.admin_or_permissions(manage_guild=True)
     async def approve(self, ctx, mode: str):
@@ -288,26 +300,49 @@ class Roulette(commands.Cog):
         await self.config.guild(ctx.guild).approve_required.set(mode.lower() == "on")
         await ctx.send(f"✅ Approve {'ingeschakeld' if mode == 'on' else 'uitgeschakeld'}.")
 
+    # --- approverole
     @roulette.command()
     @commands.admin_or_permissions(manage_guild=True)
     async def approverole(self, ctx, role: discord.Role):
         await self.config.guild(ctx.guild).approve_role.set(role.id)
         await ctx.send(f"✅ {role.name} mag nu bewijs goedkeuren.")
 
+    # --- addtask
     @roulette.command()
     async def addtask(self, ctx, gender: str, *, task: str):
         gender = gender.lower()
         if gender not in ("male", "female"):
             return await ctx.send("Gebruik `male` of `female`.")
-        async with self.config.guild(ctx.guild).tasks() as tasks:
-            tasks[gender].append(task)
-        await ctx.send("✅ Taak toegevoegd.")
+        self.tasks[gender].append(task)
+        self.save_tasks()
+        await ctx.send(f"✅ Taak toegevoegd aan {gender}.")
 
+    # --- removetask
+    @roulette.command()
+    async def removetask(self, ctx, gender: str, index: int):
+        gender = gender.lower()
+        try:
+            removed = self.tasks[gender].pop(index)
+            self.save_tasks()
+            await ctx.send(f"🗑️ Verwijderd: {removed}")
+        except Exception:
+            await ctx.send("❌ Ongeldige index of categorie.")
+
+    # --- tasks
+    @roulette.command()
+    async def tasks(self, ctx):
+        embed = discord.Embed(title="📋 Takenlijst", color=PURPLE)
+        embed.add_field(name="Mannen", value="\n".join(self.tasks["male"]) or "Geen")
+        embed.add_field(name="Vrouwen", value="\n".join(self.tasks["female"]) or "Geen")
+        await ctx.send(embed=embed)
+
+    # --- cooldown
     @roulette.command()
     async def cooldown(self, ctx, hours: int):
         await self.config.guild(ctx.guild).cooldown_hours.set(hours)
         await ctx.send(f"⏱️ Cooldown ingesteld op {hours} uur.")
 
+    # --- stats
     @roulette.command()
     async def stats(self, ctx):
         stats = await self.config.guild(ctx.guild).stats()
@@ -318,12 +353,9 @@ class Roulette(commands.Cog):
             member = ctx.guild.get_member(int(uid))
             if member:
                 desc += f"**{member.display_name}** → M:{data['male']} V:{data['female']}\n"
-        await ctx.send(embed=discord.Embed(
-            title="📊 Roulette Statistieken",
-            description=desc,
-            color=PURPLE
-        ))
+        await ctx.send(embed=discord.Embed(title="📊 Roulette Statistieken", description=desc, color=PURPLE))
 
+    # --- settings
     @roulette.command()
     async def settings(self, ctx):
         g = self.config.guild(ctx.guild)
