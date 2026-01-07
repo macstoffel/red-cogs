@@ -278,7 +278,7 @@ class Roulette(commands.Cog):
         await button_channel.send(
             embed=discord.Embed(
                 title="🎰 Roulette",
-                description="Klik op een knop om een taak te krijgen.",
+                description="Klik op een knop om een taak te krijgen.\n **LET OP!!**\nEr wordt wel bewijs gevraagd in de vorm van een foto.",
                 color=PURPLE
             ),
             view=RouletteView(self)
