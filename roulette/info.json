@@ -1,0 +1,13 @@
+{
+    "author": ["MacStoffel"],
+    "name": "Roulette",
+    "short": "Takenroulette met knoppen, bewijs, approvals en logging",
+    "description": "Een uitgebreide takenroulette met mannen/vrouwen taken, knoppen, bewijs-systeem, approvals (optioneel), rolrestricties, cooldowns, logging en statistieken.",
+    "install_msg": "Dank je voor het installeren van Roulette! Gebruik [p]roulette setup om te beginnen.",
+    "tags": ["roulette", "tasks", "buttons", "proof", "logging"],
+    "requirements": [],
+    "min_bot_version": "3.5.0",
+    "hidden": false,
+    "disabled": false,
+    "type": "COG"
+}
