@@ -306,9 +306,9 @@ class Roulette(commands.Cog):
     @roulette.command()
     @commands.admin_or_permissions(manage_guild=True)
     async def approverole(self, ctx, role: str):
-    """Stel in welke rol bewijs mag goedkeuren of verwijder met 'remove'."""
-    if role.lower() == "remove":
-        await self.config.guild(ctx.guild).approve_role.set(None)
+        """Stel in welke rol bewijs mag goedkeuren of verwijder met 'remove'."""
+        if role.lower() == "remove":
+            await self.config.guild(ctx.guild).approve_role.set(None)
         return await ctx.send("✅ Approverol verwijderd.")
     
     # Probeer rol te converteren
