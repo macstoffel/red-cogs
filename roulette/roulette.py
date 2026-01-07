@@ -75,7 +75,7 @@ class Roulette(commands.Cog):
 
         # User config
         self.config.register_user(
-            active_task={},
+            active_task={},       # lege dict i.p.v. None
             last_request=None
         )
 
@@ -126,21 +126,17 @@ class Roulette(commands.Cog):
 
         cooldown = await self.config.guild(guild).cooldown_hours()
         user_data = await self.config.user(user).all()
+
         active_task = user_data.get("active_task", {})
-        
-        if active_task:  # als dict niet leeg is, taak actief
-            return await interaction.response.send_message(
-                "❌ Je hebt nog een openstaande taak zonder bewijs.",
-                ephemeral=True
-            )
-        if user_data["active_task"]:
+        if active_task:  # dict niet leeg → actieve taak
             return await interaction.response.send_message(
                 "❌ Je hebt nog een openstaande taak zonder bewijs.",
                 ephemeral=True
             )
 
-        if user_data["last_request"]:
-            last = datetime.fromisoformat(user_data["last_request"])
+        last_request = user_data.get("last_request")
+        if last_request:
+            last = datetime.fromisoformat(last_request)
             if now < last + timedelta(hours=cooldown):
                 msg = await interaction.response.send_message(
                     f"⏳ Geen bewijs? Dan kun je maar **1 taak per {cooldown} uur** aanvragen.",
@@ -180,7 +176,7 @@ class Roulette(commands.Cog):
                 f"**Gebruiker:** {user.mention}\n"
                 f"**Categorie:** {gender}\n"
                 f"**Taak:** {task}\n\n"
-                f"Plaats hier je foto-bewijs.\n"
+                f"Plaats hier je bewijs.\n"
                 f"❗ Geen bewijs = 1 taak per {cooldown} uur"
             ),
             color=PURPLE
@@ -203,8 +199,8 @@ class Roulette(commands.Cog):
     # =========================
     async def approve_proof(self, interaction, user_id: int):
         user = interaction.guild.get_member(user_id)
-        await self.config.user(user).active_task.clear()
-        await self.config.user(user).last_request.clear()
+        await self.config.user(user).active_task.set({})
+        await self.config.user(user).last_request.set(None)
 
         await self.log(
             interaction.guild,
@@ -232,8 +228,8 @@ class Roulette(commands.Cog):
         if not message.guild or message.author.bot:
             return
 
-        proof_channel = await self.config.guild(message.guild).proof_channel()
-        if message.channel.id != proof_channel:
+        proof_channel_id = await self.config.guild(message.guild).proof_channel()
+        if not proof_channel_id or message.channel.id != proof_channel_id:
             return
 
         if not (message.attachments or "http" in message.content):
@@ -246,8 +242,8 @@ class Roulette(commands.Cog):
         approve_required = await self.config.guild(message.guild).approve_required()
 
         if not approve_required:
-            await self.config.user(message.author).active_task.clear()
-            await self.config.user(message.author).last_request.clear()
+            await self.config.user(message.author).active_task.set({})
+            await self.config.user(message.author).last_request.set(None)
 
             await self.log(
                 message.guild,
@@ -282,7 +278,7 @@ class Roulette(commands.Cog):
         await button_channel.send(
             embed=discord.Embed(
                 title="🎰 Roulette",
-                description="Klik op een knop om een taak te krijgen.\n maar LET OP!\n**Foto-bewijs moet geleverd worden!**",
+                description="Klik op een knop om een taak te krijgen.",
                 color=PURPLE
             ),
             view=RouletteView(self)
