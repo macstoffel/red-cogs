@@ -162,7 +162,7 @@ class Roulette(commands.Cog):
                 f"**Gebruiker:** {user.mention}\n"
                 f"**Categorie:** {gender}\n"
                 f"**Taak:** {task}\n\n"
-                f"Plaats hier je bewijs.\n"
+                f"Plaats hier je foto-bewijs.\n"
                 f"❗ Geen bewijs = 1 taak per {cooldown} uur"
             ),
             color=PURPLE
@@ -266,7 +266,7 @@ class Roulette(commands.Cog):
         await button_channel.send(
             embed=discord.Embed(
                 title="🎰 Roulette",
-                description="Klik op een knop om een taak te krijgen.",
+                description="Klik op een knop om een taak te krijgen.\nMaar LET OP:\n**Er moet wel bewijs geleverd worden!**",
                 color=PURPLE
             ),
             view=RouletteView(self)
