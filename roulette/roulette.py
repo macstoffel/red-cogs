@@ -75,7 +75,7 @@ class Roulette(commands.Cog):
 
         # User config
         self.config.register_user(
-            active_task=None,
+            active_task={},
             last_request=None
         )
 
@@ -126,7 +126,13 @@ class Roulette(commands.Cog):
 
         cooldown = await self.config.guild(guild).cooldown_hours()
         user_data = await self.config.user(user).all()
-
+        active_task = user_data.get("active_task", {})
+        
+        if active_task:  # als dict niet leeg is, taak actief
+            return await interaction.response.send_message(
+                "❌ Je hebt nog een openstaande taak zonder bewijs.",
+                ephemeral=True
+            )
         if user_data["active_task"]:
             return await interaction.response.send_message(
                 "❌ Je hebt nog een openstaande taak zonder bewijs.",
