@@ -305,9 +305,19 @@ class Roulette(commands.Cog):
     # --- approverole
     @roulette.command()
     @commands.admin_or_permissions(manage_guild=True)
-    async def approverole(self, ctx, role: discord.Role):
-        await self.config.guild(ctx.guild).approve_role.set(role.id)
-        await ctx.send(f"✅ {role.name} mag nu bewijs goedkeuren.")
+    async def approverole(self, ctx, role: str):
+    """Stel in welke rol bewijs mag goedkeuren of verwijder met 'remove'."""
+    if role.lower() == "remove":
+        await self.config.guild(ctx.guild).approve_role.set(None)
+        return await ctx.send("✅ Approverol verwijderd.")
+    
+    # Probeer rol te converteren
+    role_obj = discord.utils.get(ctx.guild.roles, name=role) or discord.utils.get(ctx.guild.roles, id=int(role))
+    if not role_obj:
+        return await ctx.send("❌ Rol niet gevonden. Gebruik naam of ID.")
+    
+    await self.config.guild(ctx.guild).approve_role.set(role_obj.id)
+    await ctx.send(f"✅ {role_obj.name} mag nu bewijs goedkeuren.")
 
     # --- addtask
     @roulette.command()
