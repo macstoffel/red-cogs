@@ -75,7 +75,7 @@ class Roulette(commands.Cog):
 
         # User config
         self.config.register_user(
-            active_task=dict,       # lege dict i.p.v. None
+            active_task={},       # lege dict i.p.v. None
             last_request=None
         )
 
