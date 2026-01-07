@@ -278,7 +278,7 @@ class Roulette(commands.Cog):
         await button_channel.send(
             embed=discord.Embed(
                 title="🎰 Roulette",
-                description="Klik op een knop om een taak te krijgen.\n **LET OP!!**\nEr wordt wel bewijs gevraagd in de vorm van een foto.",
+                description="Klik op een knop om een taak te krijgen.",
                 color=PURPLE
             ),
             view=RouletteView(self)
@@ -306,9 +306,9 @@ class Roulette(commands.Cog):
     @roulette.command()
     @commands.admin_or_permissions(manage_guild=True)
     async def approverole(self, ctx, role: str):
-        """Stel in welke rol bewijs mag goedkeuren of verwijder met 'remove'."""
-        if role.lower() == "remove":
-            await self.config.guild(ctx.guild).approve_role.set(None)
+    """Stel in welke rol bewijs mag goedkeuren of verwijder met 'remove'."""
+    if role.lower() == "remove":
+        await self.config.guild(ctx.guild).approve_role.set(None)
         return await ctx.send("✅ Approverol verwijderd.")
     
     # Probeer rol te converteren
