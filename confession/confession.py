@@ -64,7 +64,7 @@ class Confession(commands.Cog):
 
     @confession.command(name="settings")
     @commands.admin_or_permissions(manage_guild=True)
-    async def confession_settings(self, ctx):
+    async def settings(self, ctx):
         """Toont een overzicht van alle Confession instellingen"""
 
         data = await self.config.guild(ctx.guild).all()
