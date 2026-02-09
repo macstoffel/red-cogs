@@ -15,7 +15,9 @@ Een configureerbare anonieme biecht-cog voor Red-DiscordBot v3.
 ## Installatie
 
 [p]repo add MacStoffel https://github.com/MacStoffel/red-cogs
+
 [p]cog install MacStoffel confession
+
 [p]load confession
 
 ## Configuratie
