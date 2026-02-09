@@ -27,7 +27,7 @@ Een configureerbare anonieme biecht-cog voor Red-DiscordBot v3.
 [p]confession setcooldown 300
 [p]confession addbadword
 [p]confession removebadword
-
+[p]confession settings
 
 ## Permissies
 Read Messages, Send Messages, Manage Messages
