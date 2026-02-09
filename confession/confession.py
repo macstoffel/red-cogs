@@ -11,10 +11,7 @@ class Confession(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(
-            identifier=934857234,
-            force_registration=True
-        )
+        self.config = Config.get_conf(self, identifier=934857234, force_registration=True)
 
         default_guild = {
             "confession_channel": None,
