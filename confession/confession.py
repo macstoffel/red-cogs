@@ -1,3 +1,4 @@
+
 from redbot.core import commands, Config
 import discord
 import time
@@ -5,7 +6,7 @@ import time
 PURPLE = discord.Color.from_rgb(155, 89, 182)
 
 class Confession(commands.Cog):
-    """Anoniem biecht-kanaal met logging, cooldowns, embeds en settings overzicht"""
+    """Anoniem biecht-kanaal met logging, cooldowns en filtering"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -24,8 +25,6 @@ class Confession(commands.Cog):
 
         self.config.register_guild(**default_guild)
         self.user_cooldowns = {}
-
-    # ---------------- CONFIG COMMANDS ---------------- #
 
     @commands.group()
     @commands.admin_or_permissions(manage_guild=True)
@@ -62,9 +61,6 @@ class Confession(commands.Cog):
                 bw.remove(word.lower())
         await ctx.send(f"♻ `{word}` verwijderd uit blacklist")
 
-    
-    # ---------------- LISTENERS ---------------- #
-
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
@@ -74,46 +70,36 @@ class Confession(commands.Cog):
         if message.channel.id != data["confession_channel"]:
             return
 
-        # Cooldown check
         now = time.time()
         last = self.user_cooldowns.get(message.author.id, 0)
         if now - last < data["cooldown"]:
             await message.delete()
             return
 
-        # Profanity filter
-        lowered = message.content.lower()
         for badword in data["badwords"]:
-            if badword in lowered:
+            if badword in message.content.lower():
                 await message.delete()
                 return
 
         self.user_cooldowns[message.author.id] = now
 
-        # Counter
         counter = data["counter"] + 1
         await self.config.guild(message.guild).counter.set(counter)
 
-        # Verwijder origineel bericht
-        try:
-            await message.delete()
-        except discord.Forbidden:
-            return
+        await message.delete()
 
-        # Anoniem embed
-        anon_embed = discord.Embed(
+        embed = discord.Embed(
             title=f"Biecht #{counter}",
             description=message.content or "*[Alleen bijlage]*",
             color=PURPLE
         )
-        anon_embed.set_footer(text="Anoniem • Confessions")
-        await message.channel.send(embed=anon_embed)
+        embed.set_footer(text="Anoniem")
 
-        # Bijlagen anoniem doorsturen
+        await message.channel.send(embed=embed)
+
         for attachment in message.attachments:
             await message.channel.send(file=await attachment.to_file())
 
-        # Logging
         log_channel = message.guild.get_channel(data["log_channel"])
         if log_channel:
             log_embed = discord.Embed(
@@ -129,20 +115,6 @@ class Confession(commands.Cog):
             await log_channel.send(embed=log_embed)
             for attachment in message.attachments:
                 await log_channel.send(file=await attachment.to_file())
-
-    @commands.Cog.listener()
-    async def on_reaction_add(self, reaction, user):
-        if user.bot:
-            return
-        if reaction.message.guild is None:
-            return
-
-        confession_channel = await self.config.guild(reaction.message.guild).confession_channel()
-        if reaction.message.channel.id == confession_channel:
-            try:
-                await reaction.remove(user)
-            except discord.Forbidden:
-                pass
 
 def setup(bot):
     bot.add_cog(Confession(bot))
