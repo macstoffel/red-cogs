@@ -62,39 +62,7 @@ class Confession(commands.Cog):
                 bw.remove(word.lower())
         await ctx.send(f"♻ `{word}` verwijderd uit blacklist")
 
-    @confession.command(name="settings")
-    @commands.admin_or_permissions(manage_guild=True)
-    async def settings(self, ctx):
-        """Toont een overzicht van alle Confession instellingen"""
-
-        data = await self.config.guild(ctx.guild).all()
-
-        confession_channel = (
-            f"<#{data['confession_channel']}>" if data["confession_channel"] else "❌ Niet ingesteld"
-        )
-        log_channel = (
-            f"<#{data['log_channel']}>" if data["log_channel"] else "❌ Niet ingesteld"
-        )
-
-        cooldown = data["cooldown"]
-        counter = data["counter"]
-        badwords = ", ".join(data["badwords"]) if data["badwords"] else "Geen"
-
-        embed = discord.Embed(
-            title="⚙️ Confession – Instellingen",
-            color=PURPLE
-        )
-
-        embed.add_field(name="📝 Biecht-kanaal", value=confession_channel, inline=False)
-        embed.add_field(name="📜 Log-kanaal", value=log_channel, inline=False)
-        embed.add_field(name="⏱ Cooldown", value=f"{cooldown} seconden", inline=False)
-        embed.add_field(name="🔢 Biecht-teller", value=str(counter), inline=False)
-        embed.add_field(name="🚫 Blacklist", value=badwords, inline=False)
-
-        embed.set_footer(text=f"Opgevraagd door {ctx.author}")
-
-        await ctx.send(embed=embed)
-
+    
     # ---------------- LISTENERS ---------------- #
 
     @commands.Cog.listener()
