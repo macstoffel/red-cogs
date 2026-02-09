@@ -1,4 +1,5 @@
 
+from os import sync
 import confession
 from redbot.core import commands, Config
 import discord
@@ -91,6 +92,23 @@ class Confession(commands.Cog):
         embed.set_footer(text=f"Opgevraagd door {ctx.author}")
 
         await ctx.send(embed=embed)
+
+    @confession.command(name="setcounter")
+    @commands.admin_or_permissions(manage_guild=True)
+    async def set_counter(self, ctx, value: int):
+        """Stel de biecht-teller in op een specifiek getal"""
+        if value < 0:
+            return await ctx.send("❌ De teller kan niet negatief zijn.")
+    
+        await self.config.guild(ctx.guild).counter.set(value)
+        await ctx.send(f"✅ Biecht-teller is ingesteld op {value}")
+
+    @confession.command(name="resetcounter")
+    @commands.admin_or_permissions(manage_guild=True)
+    async def reset_counter(self, ctx):
+        """Reset de biecht-teller naar 0"""
+        await self.config.guild(ctx.guild).counter.set(0)
+        await ctx.send("♻️ Biecht-teller is gereset naar 0")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

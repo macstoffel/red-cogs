@@ -28,6 +28,11 @@ Een configureerbare anonieme biecht-cog voor Red-DiscordBot v3.
 [p]confession addbadword
 [p]confession removebadword
 [p]confession settings
+[p]confession setcounter 42
+# -> Biecht-teller staat nu op 42
+
+[p]confession resetcounter
+# -> Teller staat weer op 0
 
 ## Permissies
 Read Messages, Send Messages, Manage Messages
