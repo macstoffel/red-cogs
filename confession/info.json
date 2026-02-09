@@ -1,0 +1,16 @@
+{
+    "author": [
+        "YourName"
+    ],
+    "name": "Confession",
+    "short": "Anoniem biecht-kanaal met logging",
+    "description": "Een Red v3 cog voor anonieme biechten met logging, cooldowns, embeds en blacklist.",
+    "install_msg": "Dank je voor het installeren van Confession! Gebruik [p]confession om te beginnen.",
+    "requirements": [],
+    "tags": [
+        "confession",
+        "anonymous",
+        "logging"
+    ],
+    "end_user_data_statement": "Deze cog slaat gebruikers-ID's op voor loggingdoeleinden."
+}
