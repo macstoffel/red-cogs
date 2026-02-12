@@ -1,7 +1,7 @@
 {
   "name": "Woordspel",
   "display_name": "Woordspel",
-  "author": "MacStoffel",
+  "author": ["MacStoffel"],
   "description": "Een woordketting spel voor Discord met scoretracking en Nederlandse woordcontrole.",
   "install_msg": "Dank je voor het installeren van Woordspel! Zorg dat je `pyenchant` hebt geïnstalleerd met Nederlandse dictionaries.\nGebruik `[p]woordspel start` om te beginnen.",
   "requirements": ["pyenchant"],
