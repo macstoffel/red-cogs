@@ -1,0 +1,8 @@
+{
+    "name": "AttachmentsControl",
+    "author": ["MacStoffel"],
+    "description": "Configurable attachment anti-spam system",
+    "version": "1.0.0",
+    "requirements": [],
+    "end_user_data_statement": "Stores user IDs and timestamps for spam prevention."
+}
