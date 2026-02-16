@@ -132,6 +132,7 @@ Alle commands vereisen Administrator of Manage Server permissie.
 [p]attachcontrol escalation 24
 [p]attachcontrol escalationwindow 30
 [p]attachcontrol logchannel #systeemlogs
+[p]attachcontrol show
 ```
 Resultaat:
 - 4 attachments toegestaan binnen 30 seconden
