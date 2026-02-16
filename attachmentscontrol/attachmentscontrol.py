@@ -174,3 +174,26 @@ class AttachmentsControl(commands.Cog):
     async def logchannel(self, ctx, channel: discord.TextChannel):
         await self.config.guild(ctx.guild).log_channel_id.set(channel.id)
         await ctx.send(f"Logkanaal ingesteld op {channel.name}")
+
+    @attachcontrol.command(name="show")
+    async def show(self, ctx):
+        """Toont de huidige configuratie voor deze server."""
+        guild_conf = await self.config.guild(ctx.guild).all()
+
+        role = ctx.guild.get_role(guild_conf["role_id"])
+        role_name = role.name if role else "Niet ingesteld"
+
+        log_channel = ctx.guild.get_channel(guild_conf["log_channel_id"])
+        log_channel_name = log_channel.name if log_channel else "Niet ingesteld"
+
+        embed = discord.Embed(title="Attachment Control Configuratie", color=discord.Color.blue())
+        embed.add_field(name="Ingeschakeld", value=str(guild_conf["enabled"]), inline=False)
+        embed.add_field(name="Rol", value=role_name, inline=False)
+        embed.add_field(name="Max attachments", value=guild_conf["max_attachments"], inline=False)
+        embed.add_field(name="Tijdvenster (s)", value=guild_conf["time_window"], inline=False)
+        embed.add_field(name="Eerste timeout (min)", value=guild_conf["first_timeout_minutes"], inline=False)
+        embed.add_field(name="Escalatie timeout (uur)", value=guild_conf["escalation_hours"], inline=False)
+        embed.add_field(name="Escalatieperiode (min)", value=guild_conf["escalation_window_minutes"], inline=False)
+        embed.add_field(name="Logkanaal", value=log_channel_name, inline=False)
+
+        await ctx.send(embed=embed)
