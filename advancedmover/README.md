@@ -38,6 +38,11 @@ Production-ready message moving & copying cog for Red-DiscordBot.
 
 ## Commands
 
+bericht verplaatsen:
+
+[p]moveid <destination> <berichtID>
+
+
 ### Advanced Move
 [p]advmove <destination> [member] [minutes] [start_id] [end_id]
 

@@ -10,6 +10,10 @@ class AdvancedMover(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    # --------------------------------------------------
+    # Utility Functions
+    # --------------------------------------------------
+
     async def get_webhook(self, destination):
         webhooks = await destination.webhooks()
         for wh in webhooks:
@@ -21,7 +25,7 @@ class AdvancedMover(commands.Cog):
         if count <= 100:
             return True
 
-        msg = await ctx.send(
+        await ctx.send(
             f"⚠️ Je staat op het punt {count} berichten te verwerken.\n"
             f"Typ `ja` om te bevestigen."
         )
@@ -58,7 +62,7 @@ class AdvancedMover(commands.Cog):
                 files = [await a.to_file() for a in message.attachments]
 
                 await webhook.send(
-                    content=message.content,
+                    content=message.content or "",
                     username=message.author.display_name,
                     avatar_url=message.author.display_avatar.url,
                     embeds=message.embeds,
@@ -75,7 +79,7 @@ class AdvancedMover(commands.Cog):
                         content=f"Verwerkt: {processed}/{count}"
                     )
 
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.25)
 
             except Exception:
                 failed += 1
@@ -112,6 +116,10 @@ class AdvancedMover(commands.Cog):
 
         return results
 
+    # --------------------------------------------------
+    # Commands
+    # --------------------------------------------------
+
     @commands.guild_only()
     @commands.mod_or_permissions(manage_messages=True)
     @commands.command()
@@ -124,9 +132,7 @@ class AdvancedMover(commands.Cog):
         start_id: int = None,
         end_id: int = None,
     ):
-        """
-        Geavanceerd verplaatsen met combineerbare filters.
-        """
+        """Geavanceerd verplaatsen met filters."""
         messages = await self.collect_messages(
             ctx.channel, start_id, end_id, member, minutes
         )
@@ -144,15 +150,26 @@ class AdvancedMover(commands.Cog):
         start_id: int = None,
         end_id: int = None,
     ):
-        """
-        Geavanceerd kopiëren met combineerbare filters.
-        """
+        """Geavanceerd kopiëren met filters."""
         messages = await self.collect_messages(
             ctx.channel, start_id, end_id, member, minutes
         )
         await self.process(ctx, destination, messages, delete_original=False)
 
-        @commands.guild_only()
+    @commands.guild_only()
+    @commands.mod_or_permissions(manage_messages=True)
+    @commands.command()
+    async def advmovetonewthread(self, ctx, *, thread_name: str):
+        """Maak nieuwe thread en verplaats alles hierheen."""
+        thread = await ctx.channel.create_thread(
+            name=thread_name,
+            type=discord.ChannelType.public_thread,
+        )
+
+        messages = await self.collect_messages(ctx.channel)
+        await self.process(ctx, thread, messages, delete_original=True)
+
+    @commands.guild_only()
     @commands.mod_or_permissions(manage_messages=True)
     @commands.command()
     async def moveid(
@@ -161,12 +178,7 @@ class AdvancedMover(commands.Cog):
         destination: discord.abc.GuildChannel,
         message_id: int,
     ):
-        """
-        Verplaats één specifiek bericht naar een kanaal of thread.
-        Gebruik:
-        [p]moveid <destination> <message_id>
-        """
-
+        """Verplaats één specifiek bericht."""
         try:
             message = await ctx.channel.fetch_message(message_id)
         except discord.NotFound:
@@ -182,7 +194,7 @@ class AdvancedMover(commands.Cog):
             files = [await a.to_file() for a in message.attachments]
 
             await webhook.send(
-                content=message.content,
+                content=message.content or "",
                 username=message.author.display_name,
                 avatar_url=message.author.display_avatar.url,
                 embeds=message.embeds,
@@ -190,7 +202,6 @@ class AdvancedMover(commands.Cog):
             )
 
             await message.delete()
-
             await ctx.send("✅ Bericht succesvol verplaatst.")
 
         except Exception as e:
@@ -199,14 +210,36 @@ class AdvancedMover(commands.Cog):
     @commands.guild_only()
     @commands.mod_or_permissions(manage_messages=True)
     @commands.command()
-    async def advmovetonewthread(self, ctx, *, thread_name: str):
-        """
-        Maak nieuwe thread en verplaats alles hierheen.
-        """
-        thread = await ctx.channel.create_thread(
-            name=thread_name,
-            type=discord.ChannelType.public_thread,
-        )
+    async def copyid(
+        self,
+        ctx,
+        destination: discord.abc.GuildChannel,
+        message_id: int,
+    ):
+        """Kopieer één specifiek bericht."""
+        try:
+            message = await ctx.channel.fetch_message(message_id)
+        except discord.NotFound:
+            await ctx.send("❌ Bericht niet gevonden in dit kanaal.")
+            return
+        except discord.Forbidden:
+            await ctx.send("❌ Geen toegang tot dit bericht.")
+            return
 
-        messages = await self.collect_messages(ctx.channel)
-        await self.process(ctx, thread, messages, delete_original=True)
+        webhook = await self.get_webhook(destination)
+
+        try:
+            files = [await a.to_file() for a in message.attachments]
+
+            await webhook.send(
+                content=message.content or "",
+                username=message.author.display_name,
+                avatar_url=message.author.display_avatar.url,
+                embeds=message.embeds,
+                files=files,
+            )
+
+            await ctx.send("✅ Bericht succesvol gekopieerd.")
+
+        except Exception as e:
+            await ctx.send(f"❌ Fout bij kopiëren: {e}")
