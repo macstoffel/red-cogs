@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 
 class AdvancedMover(commands.Cog):
-    """Production-ready message mover and copier."""
+    """Production-ready message mover and copier with full thread support."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -14,7 +14,7 @@ class AdvancedMover(commands.Cog):
     # Utility Functions
     # --------------------------------------------------
 
-    async def get_webhook(self, destination):
+    async def get_webhook(self, destination: discord.TextChannel | discord.Thread):
         webhooks = await destination.webhooks()
         for wh in webhooks:
             if wh.name == "AdvancedMover":
@@ -126,7 +126,7 @@ class AdvancedMover(commands.Cog):
     async def advmove(
         self,
         ctx,
-        destination: discord.abc.GuildChannel,
+        destination: discord.TextChannel | discord.Thread,
         member: discord.Member = None,
         minutes: int = None,
         start_id: int = None,
@@ -144,7 +144,7 @@ class AdvancedMover(commands.Cog):
     async def advcopy(
         self,
         ctx,
-        destination: discord.abc.GuildChannel,
+        destination: discord.TextChannel | discord.Thread,
         member: discord.Member = None,
         minutes: int = None,
         start_id: int = None,
@@ -175,7 +175,7 @@ class AdvancedMover(commands.Cog):
     async def moveid(
         self,
         ctx,
-        destination: discord.abc.GuildChannel,
+        destination: discord.TextChannel | discord.Thread,
         message_id: int,
     ):
         """Verplaats één specifiek bericht."""
@@ -213,7 +213,7 @@ class AdvancedMover(commands.Cog):
     async def copyid(
         self,
         ctx,
-        destination: discord.abc.GuildChannel,
+        destination: discord.TextChannel | discord.Thread,
         message_id: int,
     ):
         """Kopieer één specifiek bericht."""
