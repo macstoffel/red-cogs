@@ -116,6 +116,23 @@ class AdvancedMover(commands.Cog):
 
         return results
 
+    async def find_message_global(self, guild, message_id: int):
+        # Check text channels
+        for channel in guild.text_channels:
+            try:
+                return await channel.fetch_message(message_id)
+            except Exception:
+                continue
+
+        # Check active threads
+        for thread in guild.threads:
+            try:
+                return await thread.fetch_message(message_id)
+            except Exception:
+                continue
+
+        return None
+
     # --------------------------------------------------
     # Commands
     # --------------------------------------------------
@@ -178,14 +195,12 @@ class AdvancedMover(commands.Cog):
         destination: discord.TextChannel | discord.Thread,
         message_id: int,
     ):
-        """Verplaats één specifiek bericht."""
-        try:
-            message = await ctx.channel.fetch_message(message_id)
-        except discord.NotFound:
-            await ctx.send("❌ Bericht niet gevonden in dit kanaal.")
-            return
-        except discord.Forbidden:
-            await ctx.send("❌ Geen toegang tot dit bericht.")
+        """Verplaats één specifiek bericht (server-breed zoeken)."""
+
+        message = await self.find_message_global(ctx.guild, message_id)
+
+        if not message:
+            await ctx.send("❌ Bericht nergens gevonden in deze server.")
             return
 
         webhook = await self.get_webhook(destination)
@@ -202,7 +217,10 @@ class AdvancedMover(commands.Cog):
             )
 
             await message.delete()
-            await ctx.send("✅ Bericht succesvol verplaatst.")
+
+            await ctx.send(
+                f"✅ Bericht verplaatst vanuit {message.channel.mention}"
+            )
 
         except Exception as e:
             await ctx.send(f"❌ Fout bij verplaatsen: {e}")
@@ -216,14 +234,12 @@ class AdvancedMover(commands.Cog):
         destination: discord.TextChannel | discord.Thread,
         message_id: int,
     ):
-        """Kopieer één specifiek bericht."""
-        try:
-            message = await ctx.channel.fetch_message(message_id)
-        except discord.NotFound:
-            await ctx.send("❌ Bericht niet gevonden in dit kanaal.")
-            return
-        except discord.Forbidden:
-            await ctx.send("❌ Geen toegang tot dit bericht.")
+        """Kopieer één specifiek bericht (server-breed zoeken)."""
+
+        message = await self.find_message_global(ctx.guild, message_id)
+
+        if not message:
+            await ctx.send("❌ Bericht nergens gevonden in deze server.")
             return
 
         webhook = await self.get_webhook(destination)
@@ -239,7 +255,9 @@ class AdvancedMover(commands.Cog):
                 files=files,
             )
 
-            await ctx.send("✅ Bericht succesvol gekopieerd.")
+            await ctx.send(
+                f"✅ Bericht gekopieerd vanuit {message.channel.mention}"
+            )
 
         except Exception as e:
             await ctx.send(f"❌ Fout bij kopiëren: {e}")
