@@ -1,0 +1,11 @@
+{
+    "name": "AdvancedMover",
+    "short": "Production-ready message mover & copier",
+    "description": "Move and copy messages between channels and threads with filtering, confirmation, progress tracking and optimized webhook handling.",
+    "end_user_data_statement": "This cog does not persistently store any user data.",
+    "author": ["MacStoffel"],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": ["moderation", "utility", "threads"],
+    "min_bot_version": "3.5.0"
+}
