@@ -152,6 +152,50 @@ class AdvancedMover(commands.Cog):
         )
         await self.process(ctx, destination, messages, delete_original=False)
 
+        @commands.guild_only()
+    @commands.mod_or_permissions(manage_messages=True)
+    @commands.command()
+    async def moveid(
+        self,
+        ctx,
+        destination: discord.abc.GuildChannel,
+        message_id: int,
+    ):
+        """
+        Verplaats één specifiek bericht naar een kanaal of thread.
+        Gebruik:
+        [p]moveid <destination> <message_id>
+        """
+
+        try:
+            message = await ctx.channel.fetch_message(message_id)
+        except discord.NotFound:
+            await ctx.send("❌ Bericht niet gevonden in dit kanaal.")
+            return
+        except discord.Forbidden:
+            await ctx.send("❌ Geen toegang tot dit bericht.")
+            return
+
+        webhook = await self.get_webhook(destination)
+
+        try:
+            files = [await a.to_file() for a in message.attachments]
+
+            await webhook.send(
+                content=message.content,
+                username=message.author.display_name,
+                avatar_url=message.author.display_avatar.url,
+                embeds=message.embeds,
+                files=files,
+            )
+
+            await message.delete()
+
+            await ctx.send("✅ Bericht succesvol verplaatst.")
+
+        except Exception as e:
+            await ctx.send(f"❌ Fout bij verplaatsen: {e}")
+
     @commands.guild_only()
     @commands.mod_or_permissions(manage_messages=True)
     @commands.command()
