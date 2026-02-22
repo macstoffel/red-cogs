@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 
 class AdvancedMover(commands.Cog):
-    """Production-ready message mover and copier with full thread support."""
+    """Production-ready message mover and copier with thread support."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -15,11 +15,15 @@ class AdvancedMover(commands.Cog):
     # --------------------------------------------------
 
     async def get_webhook(self, destination: discord.TextChannel | discord.Thread):
-        webhooks = await destination.webhooks()
-        for wh in webhooks:
-            if wh.name == "AdvancedMover":
-                return wh
-        return await destination.create_webhook(name="AdvancedMover")
+        """Return a webhook for TextChannel, or None for threads."""
+        if isinstance(destination, discord.TextChannel):
+            webhooks = await destination.webhooks()
+            for wh in webhooks:
+                if wh.name == "AdvancedMover":
+                    return wh
+            return await destination.create_webhook(name="AdvancedMover")
+        # Threads ondersteunen geen webhooks
+        return None
 
     async def confirm_large_action(self, ctx, count):
         if count <= 100:
@@ -61,13 +65,22 @@ class AdvancedMover(commands.Cog):
             try:
                 files = [await a.to_file() for a in message.attachments]
 
-                await webhook.send(
-                    content=message.content or "",
-                    username=message.author.display_name,
-                    avatar_url=message.author.display_avatar.url,
-                    embeds=message.embeds,
-                    files=files,
-                )
+                if webhook:
+                    # TextChannel via webhook
+                    await webhook.send(
+                        content=message.content or "",
+                        username=message.author.display_name,
+                        avatar_url=message.author.display_avatar.url,
+                        embeds=message.embeds,
+                        files=files,
+                    )
+                else:
+                    # Thread of normale send (geen webhook)
+                    await destination.send(
+                        content=message.content or "",
+                        embeds=message.embeds,
+                        files=files
+                    )
 
                 if delete_original:
                     await message.delete()
@@ -208,13 +221,20 @@ class AdvancedMover(commands.Cog):
         try:
             files = [await a.to_file() for a in message.attachments]
 
-            await webhook.send(
-                content=message.content or "",
-                username=message.author.display_name,
-                avatar_url=message.author.display_avatar.url,
-                embeds=message.embeds,
-                files=files,
-            )
+            if webhook:
+                await webhook.send(
+                    content=message.content or "",
+                    username=message.author.display_name,
+                    avatar_url=message.author.display_avatar.url,
+                    embeds=message.embeds,
+                    files=files,
+                )
+            else:
+                await destination.send(
+                    content=message.content or "",
+                    embeds=message.embeds,
+                    files=files
+                )
 
             await message.delete()
 
@@ -247,13 +267,20 @@ class AdvancedMover(commands.Cog):
         try:
             files = [await a.to_file() for a in message.attachments]
 
-            await webhook.send(
-                content=message.content or "",
-                username=message.author.display_name,
-                avatar_url=message.author.display_avatar.url,
-                embeds=message.embeds,
-                files=files,
-            )
+            if webhook:
+                await webhook.send(
+                    content=message.content or "",
+                    username=message.author.display_name,
+                    avatar_url=message.author.display_avatar.url,
+                    embeds=message.embeds,
+                    files=files,
+                )
+            else:
+                await destination.send(
+                    content=message.content or "",
+                    embeds=message.embeds,
+                    files=files
+                )
 
             await ctx.send(
                 f"✅ Bericht gekopieerd vanuit {message.channel.mention}"
