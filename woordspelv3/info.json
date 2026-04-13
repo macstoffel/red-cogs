@@ -1,6 +1,6 @@
 {
     "author": ["MacStoffel"],
-    "install_msg": "✔ WoordspelV3 succesvol geïnstalleerd!\nGebruik `$ws help` om te beginnen.",
+    "install_msg": "✔ WoordspelV3 succesvol geïnstalleerd!\nGebruik `$ws3 help` om te beginnen.",
     "name": "WoordspelV3",
     "short": "Een uitgebreid Nederlands woordspel voor Discord met taken-systeem.",
     "description": "Een verbeterde versie van het originele woordspel met pauze-functie, takenkanaal, taakverwerking, time-outs, woordvalidatie en volledige embed-ondersteuning.",
