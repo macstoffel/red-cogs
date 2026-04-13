@@ -1,4 +1,7 @@
 # woordspelv3.py
+from email.mime import message
+from turtle import st
+
 import discord
 from redbot.core import commands
 import enchant
@@ -383,8 +386,16 @@ class WoordSpelV3(commands.Cog):
         st["last_user_id"] = message.author.id
         self._save_state(message.guild.id)
 
+        last_letter = content[-1]
+
         await message.channel.send(embed=self.make_embed(
-            description=f"✅ `{content}` is correct!\nScore: {st['current_score']}"
+            title="Correct woord!",
+            description=(
+                f"✅ `{content}` is correct!\n\n"
+                f"➡️ Volgend woord moet beginnen met: **`{last_letter}`**\n\n"
+                f"📊 Huidige score: **{st['current_score']}**\n"
+                f"🎯 Doel: **{st['goal_points']}**"
+                )
         ))
 
         if st["current_score"] >= st["goal_points"]:
