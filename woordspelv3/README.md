@@ -3,7 +3,7 @@
 WoordspelV3 is de vernieuwde, verbeterde en uitgebreidere versie van het Nederlandse woordketting‑spel voor Redbot.  
 Deze versie bevat persistente scores, admin‑beheer, een optionele score‑behoud‑modus, en een verbeterd taak‑ en pauzesysteem.
 
-Alle commands beginnen met **$ws**.
+Alle commands beginnen met **$ws3**.
 
 ---
 
@@ -26,18 +26,18 @@ Wanneer een speler een fout woord typt:
 - Taken worden opgeslagen in `tasks.json`
 - Willekeurige taakselectie
 - Commands om taken te beheren:
-  - `$ws taakadd "<taak>"`
-  - `$ws taakremove <id>`
-  - `$ws taken`
+  - `$ws3 taakadd "<taak>"`
+  - `$ws3 taakremove <id>`
+  - `$ws3 taken`
 
 ### ✔ Time-out systeem
 - Standaard 5 minuten
 - Aanpasbaar via:
-  - `$ws timeout <seconden>`
+  - `$ws3 timeout <seconden>`
 
 ### ✔ Configureerbaar takenkanaal
 - Stel zelf het kanaal in met:
-  - `$ws taskchannel #kanaalnaam`
+  - `$ws3 taskchannel #kanaalnaam`
 
 ### ✔ Persistente score-opslag (NIEUW in V3)
 - Score blijft bewaard bij een Redbot‑herstart
@@ -47,15 +47,15 @@ Wanneer een speler een fout woord typt:
 ### ✔ Admin scorebeheer (NIEUW in V3)
 Beheerders kunnen nu:
 - De score aanpassen:  
-  `$ws setscore <waarde>`
+  `$ws3 setscore <waarde>`
 - De highscore aanpassen:  
-  `$ws sethighscore <waarde>`
+  `$ws3 sethighscore <waarde>`
 
 ### ✔ Optie: score behouden bij taak-succes (NIEUW in V3)
 - Normaal wordt de score gereset bij een fout woord
 - In V3 kun je instellen dat de score behouden blijft als de taak op tijd wordt uitgevoerd
 - Aan/uit via:  
-  `$ws keepscore true/false`
+  `$ws3 keepscore true/false`
 
 ### ✔ Mooie paarse embeds
 Alle spelberichten worden automatisch in paarse embeds weergegeven.
@@ -86,31 +86,31 @@ Alle spelberichten worden automatisch in paarse embeds weergegeven.
 ### Spelcommando’s
 | Command | Functie |
 |--------|---------|
-| `$ws start [doelpunten]` | Start een nieuwe sessie |
-| `$ws stop` | Stopt het spel |
-| `$ws totaal` | Huidige score |
-| `$ws highscore` | Hoogste score |
-| `$ws help` | Overzicht embeds |
+| `$ws3 start [doelpunten]` | Start een nieuwe sessie |
+| `$ws3 stop` | Stopt het spel |
+| `$ws3 totaal` | Huidige score |
+| `$ws3 highscore` | Hoogste score |
+| `$ws3 help` | Overzicht embeds |
 
 ### Taakbeheer
 | Command | Functie |
 |--------|---------|
-| `$ws taakadd "<tekst>"` | Voegt een taak toe |
-| `$ws taakremove <id>` | Verwijdert een taak |
-| `$ws taken` | Bekijk alle taken |
+| `$ws3 taakadd "<tekst>"` | Voegt een taak toe |
+| `$ws3 taakremove <id>` | Verwijdert een taak |
+| `$ws3 taken` | Bekijk alle taken |
 
 ### Configuratie
 | Command | Functie |
 |--------|---------|
-| `$ws taskchannel #kanaal` | Stel takenkanaal in |
-| `$ws timeout <seconden>` | Zet taak time-out |
-| `$ws keepscore true/false` | Score behouden bij taak-succes |
+| `$ws3 taskchannel #kanaal` | Stel takenkanaal in |
+| `$ws3 timeout <seconden>` | Zet taak time-out |
+| `$ws3 keepscore true/false` | Score behouden bij taak-succes |
 
 ### Admin scorebeheer (nieuw)
 | Command | Functie |
 |--------|---------|
-| `$ws setscore <waarde>` | Pas de huidige score aan |
-| `$ws sethighscore <waarde>` | Pas de highscore aan |
+| `$ws3 setscore <waarde>` | Pas de huidige score aan |
+| `$ws3 sethighscore <waarde>` | Pas de highscore aan |
 
 ---
 

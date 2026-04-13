@@ -135,7 +135,7 @@ class WoordSpelV3(commands.Cog):
         return discord.Embed(title=title, description=description, color=EMBED_COLOR)
 
     # -------------------- Commands --------------------
-    @commands.group(name="ws", invoke_without_command=True)
+    @commands.group(name="ws3", invoke_without_command=True)
     async def ws(self, ctx):
         await ctx.send(embed=self.make_embed(
             title="Woordspel V3",
