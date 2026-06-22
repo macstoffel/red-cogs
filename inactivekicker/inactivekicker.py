@@ -58,17 +58,51 @@ class InactiveKicker(commands.Cog):
         if action.lower() == "show":
             lijst = "\n".join([f"{m} (ID: {m.id})" for m in inactieve])
             await ctx.send(f"Inactieve gebruikers (>{days} dagen):\n{lijst[:1900]}")
-        elif action.lower() == "kick":
-            gekickt = 0
+        
+        elif action.lower() == "mark":
+            # Rollen (pas namen aan indien nodig)
+            rollen_te_verwijderen = ["lid", "super-lid", "aanmelden"]
+            rol_inactief = discord.utils.get(ctx.guild.roles, name="Inactief")
+
+            if not rol_inactief:
+                return await ctx.send("Rol 'Inactief' bestaat niet.")
+
+            aangepast = 0
+
             for m in inactieve:
                 try:
-                    await m.kick(reason=f"Inactief voor {days}+ dagen")
-                    gekickt += 1
+                    # Rollen ophalen die verwijderd moeten worden
+                    te_verwijderen = [
+                        discord.utils.get(ctx.guild.roles, name=r)
+                        for r in rollen_te_verwijderen
+                    ]
+                    te_verwijderen = [r for r in te_verwijderen if r and r in m.roles]
+
+                    # Rollen aanpassen
+                    if te_verwijderen:
+                        await m.remove_roles(*te_verwijderen, reason="Inactief")
+                    
+                    if rol_inactief not in m.roles:
+                        await m.add_roles(rol_inactief, reason="Inactief")
+
+                    aangepast += 1
+
                 except Exception as e:
-                    await ctx.send(f"Kon {m} niet kicken: {e}")
-            await ctx.send(f"{gekickt} gebruiker(s) gekickt.")
-        else:
-            await ctx.send("Ongeldige actie. Gebruik 'show' of 'kick'.")
+                    await ctx.send(f"Kon rollen van {m} niet aanpassen: {e}")
+
+            await ctx.send(f"{aangepast} gebruiker(s) gemarkeerd als inactief.")    
+        
+#        elif action.lower() == "kick":
+#            gekickt = 0
+#            for m in inactieve:
+#                try:
+#                    await m.kick(reason=f"Inactief voor {days}+ dagen")
+#                    gekickt += 1
+#                except Exception as e:
+#                    await ctx.send(f"Kon {m} niet kicken: {e}")
+#            await ctx.send(f"{gekickt} gebruiker(s) gekickt.")
+#        else:
+#            await ctx.send("Ongeldige actie. Gebruik 'show' of 'kick'.")
 
     @commands.command()
     @commands.is_owner()
