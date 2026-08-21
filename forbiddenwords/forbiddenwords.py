@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import discord
 from redbot.core import commands, Config
@@ -30,13 +30,6 @@ class ForbiddenWords(commands.Cog):
 
         self.config.register_guild(**default_guild)
         self.config.register_member(**default_member)
-
-    async def purple_embed(self, title, description):
-        return discord.Embed(
-            title=title,
-            description=description,
-            color=PURPLE
-        )
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -85,14 +78,18 @@ class ForbiddenWords(commands.Cog):
 
         await message.channel.send(embed=embed)
 
-        if points % 10 == 0:
+        # Timeout iedere 10 punten
+        if points > 0 and points % 10 == 0:
 
             try:
-                timeout_until = datetime.utcnow() + timedelta(minutes=1)
+
+                timeout_until = datetime.now(
+                    timezone.utc
+                ) + timedelta(minutes=1)
 
                 await message.author.edit(
                     timed_out_until=timeout_until,
-                    reason="10 strafpunten bereikt"
+                    reason=f"{points} strafpunten bereikt"
                 )
 
                 embed = discord.Embed(
@@ -107,12 +104,13 @@ class ForbiddenWords(commands.Cog):
 
                 await message.channel.send(embed=embed)
 
-            except discord.Forbidden:
+            except Exception as e:
 
                 embed = discord.Embed(
-                    title="❌ Fout",
+                    title="❌ Timeout Fout",
                     description=(
-                        "Ik heb onvoldoende rechten om een timeout uit te voeren."
+                        f"Type: `{type(e).__name__}`\n"
+                        f"Fout: `{e}`"
                     ),
                     color=PURPLE
                 )
@@ -252,7 +250,10 @@ class ForbiddenWords(commands.Cog):
 
         lines = []
 
-        for i, (member, points) in enumerate(ranking[:10], start=1):
+        for i, (member, points) in enumerate(
+            ranking[:10],
+            start=1
+        ):
             lines.append(
                 f"**{i}.** {member.display_name} • {points} punten"
             )
