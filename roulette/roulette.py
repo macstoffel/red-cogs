@@ -158,7 +158,8 @@ class Roulette(commands.Cog):
                 "female": []
             }
 
-        if not self._task_poolself._task_pool[gender] = self.tasks[gender][:]
+        if not self._task_pool[gender]:
+            self._task_pool[gender] = self.tasks[gender][:]
             random.shuffle(self._task_pool[gender])
 
         task = self._task_pool[gender].pop()
@@ -191,6 +192,11 @@ class Roulette(commands.Cog):
             color=PURPLE
         )
 
+        if proof_channel is None:
+            return await interaction.response.send_message(
+                "❌ Bewijskanaal niet gevonden.",
+                ephemeral=True
+            )
         await proof_channel.send(embed=embed)
 
         await self.log(
