@@ -152,7 +152,16 @@ class Roulette(commands.Cog):
                 ephemeral=True
             )
 
-        task = random.choice(self.tasks[gender])
+        if not hasattr(self, "_task_pool"):
+            self._task_pool = {
+                "male": [],
+                "female": []
+            }
+
+        if not self._task_poolself._task_pool[gender] = self.tasks[gender][:]
+            random.shuffle(self._task_pool[gender])
+
+        task = self._task_pool[gender].pop()
 
         await self.config.user(user).active_task.set({
             "task": task,
