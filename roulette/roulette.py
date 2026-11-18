@@ -198,6 +198,30 @@ class Roulette(commands.Cog):
         role = member.guild.get_role(role_id)
         return role is not None and role in member.roles
 
+    async def review_line(self, guild) -> str:
+        """Regel onder het taakbericht die vertelt wie het bewijs beoordeelt."""
+        conf_guild = self.config.guild(guild)
+        if not await conf_guild.approve_required():
+            return "✅ Je bewijs wordt automatisch goedgekeurd.\n"
+        role_id = await conf_guild.approve_role()
+        role = guild.get_role(role_id) if role_id else None
+        if role is not None:
+            return f"🛡️ Je bewijs wordt beoordeeld door **{role.name}**.\n"
+        return "🛡️ Je bewijs wordt beoordeeld door een moderator.\n"
+
+    @staticmethod
+    async def nudge_reply(message: discord.Message):
+        """Zeg het één keer als iemand bewijs plaatst zonder reply op het taakbericht."""
+        try:
+            await message.reply(
+                "❗ Dit telt niet als bewijs. **Reageer op het taakbericht** met je "
+                "tekst, foto of video.",
+                mention_author=True,
+                delete_after=15,
+            )
+        except discord.HTTPException:
+            pass
+
     # =========================
     # TASK REQUEST
     # =========================
@@ -268,17 +292,20 @@ class Roulette(commands.Cog):
                 )
 
             task = random.choice(pool)
+            review_line = await self.review_line(guild)
 
             # Eerst het bewijsbericht plaatsen; pas daarna state aanpassen.
             try:
-                await proof_channel.send(
+                proof_message = await proof_channel.send(
                     embed=discord.Embed(
                         title="📸 Bewijs vereist",
                         description=(
                             f"**Gebruiker:** {user.mention}\n"
                             f"**Categorie:** {gender}\n"
                             f"**Taak:** {task}\n\n"
-                            f"Plaats hier je bewijs.\n"
+                            f"📎 **Lever je bewijs als reply op dít bericht** — "
+                            f"tekst, foto of video.\n"
+                            f"{review_line}"
                             f"❗ Lever je geen bewijs, dan kun je {cooldown} uur lang "
                             f"geen nieuwe taak aanvragen."
                         ),
@@ -293,7 +320,12 @@ class Roulette(commands.Cog):
                 )
 
             await conf_user.active_task.set(
-                {"task": task, "gender": gender, "time": now.isoformat()}
+                {
+                    "task": task,
+                    "gender": gender,
+                    "time": now.isoformat(),
+                    "message_id": proof_message.id,
+                }
             )
             await conf_user.last_request.set(now.isoformat())
 
@@ -388,11 +420,25 @@ class Roulette(commands.Cog):
         if not proof_channel_id or message.channel.id != proof_channel_id:
             return
 
-        if not (message.attachments or "http" in message.content):
-            return
-
         active = await self.config.user(message.author).active_task()
         if not active:
+            return
+
+        # Bewijs moet een reply zijn op het taakbericht van deze taak.
+        task_message_id = active.get("message_id")
+        if task_message_id:
+            reference = message.reference
+            if reference is None or reference.message_id != task_message_id:
+                await self.nudge_reply(message)
+                return
+
+        # Commando's zijn geen bewijs.
+        if message.content:
+            prefixes = await self.bot.get_valid_prefixes(message.guild)
+            if any(message.content.startswith(prefix) for prefix in prefixes):
+                return
+
+        if not (message.content.strip() or message.attachments or message.stickers):
             return
 
         # Al een openstaande beoordeling voor deze gebruiker? Dan geen tweede embed.
@@ -425,7 +471,10 @@ class Roulette(commands.Cog):
         review_message = await message.channel.send(
             embed=discord.Embed(
                 title="🛂 Bewijs ontvangen",
-                description=f"{message.author.mention} heeft bewijs geleverd.",
+                description=(
+                    f"{message.author.mention} heeft bewijs geleverd.\n"
+                    f"[Open het bewijs]({message.jump_url})"
+                ),
                 color=PURPLE,
             ),
             view=ProofReviewView(self),
@@ -550,6 +599,30 @@ class Roulette(commands.Cog):
             return await ctx.send("❌ Gebruik een aantal uren tussen 0 en 8760.")
         await self.config.guild(ctx.guild).cooldown_hours.set(hours)
         await ctx.send(f"⏱️ Cooldown ingesteld op {hours} uur.")
+
+    @roulette.command()
+    @commands.admin_or_permissions(manage_guild=True)
+    async def reset(self, ctx, member: discord.Member = None):
+        """Breek de lopende taak van een lid af en wis de cooldown."""
+        target = member or ctx.author
+        conf_user = self.config.user(target)
+        await conf_user.active_task.set({})
+        await conf_user.last_request.set(None)
+
+        # Openstaande reviews van dit lid opruimen.
+        conf_guild = self.config.guild(ctx.guild)
+        reviews = await conf_guild.reviews()
+        stale = [
+            message_id
+            for message_id, entry in reviews.items()
+            if self.review_user_id(entry) == target.id
+        ]
+        for message_id in stale:
+            reviews.pop(message_id, None)
+        if stale:
+            await conf_guild.reviews.set(reviews)
+
+        await ctx.send(f"♻️ Lopende taak van {target.mention} afgebroken, cooldown gewist.")
 
     @roulette.command()
     async def stats(self, ctx):
